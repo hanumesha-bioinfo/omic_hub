@@ -1,0 +1,16 @@
+node_modules/
+build/
+dist/
+coverage/
+.venv/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Local secrets and credentials
+.env
+.env.*
+!.env.example
+*service-account*.json
+*credentials*.json

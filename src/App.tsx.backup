@@ -1,0 +1,768 @@
+import { supabase } from './lib/supabase';
+import React, { useState, useEffect, useRef } from 'react';
+import { ToastProvider, useToast } from './components/Toast';
+import { SignInPage } from './components/SignInPage';
+import { Sidebar, ActiveTab } from './components/Sidebar';
+import { TopHeader } from './components/TopHeader';
+import { DashboardView } from './components/DashboardView';
+import { ATSAndResumeView } from './components/ResumeBuilder/ATSAndResumeView';
+import { ResumeBuilderView } from './components/ResumeBuilder/ResumeBuilderView';
+import { ResumeAnalyzerView } from './components/ResumeAnalyzer/ResumeAnalyzerView';
+import { JobTrackerView } from './components/JobTracker/JobTrackerView';
+import { SkillPathsView } from './components/SkillPaths/SkillPathsView';
+import { MockInterviewView } from './components/MockInterview/MockInterviewView';
+import { CertificationsView } from './components/Certifications/CertificationsView';
+import { BioinformaticsNews } from './components/Dashboard/BioinformaticsNews';
+import { DataRetrievalModal } from './components/DataRetrievalModal';
+import { DataVaultModal } from './components/DataVaultModal';
+import { ProfileSettingsModal } from './components/ProfileSettingsModal';
+import { PlanSelectionLandingPage } from './components/PlanSelectionLandingPage';
+import { FeatureGateModal } from './components/FeatureGateModal';
+import { SubscriptionPlanModal } from './components/SubscriptionPlanModal';
+import { RecruiterDashboardView } from './components/Recruiter/RecruiterDashboardView';
+import {
+  StorageService,
+  DEFAULT_USER,
+} from './services/storage';
+import { UserProfile, ResumeData, JobApplication, Course, ScheduledInterview, ActivityItem, SubscriptionPlanTier } from './types';
+import { Search, Database, Sparkles, Crown, ArrowRight, Building2, LogOut, LogIn } from 'lucide-react';
+
+function MainApp() {
+  const { showToast } = useToast();
+    const processedAuthUserId = useRef<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const processSession = async (authUser: {
+      id: string;
+      email?: string;
+      user_metadata?: Record<string, unknown>;
+    }) => {
+      if (processedAuthUserId.current === authUser.id) return;
+
+      processedAuthUserId.current = authUser.id;
+
+      try {
+        const { data: existingProfile, error: profileError } =
+          await supabase
+            .from('profiles')
+            .select('id, full_name, user_type, company_name')
+            .eq('id', authUser.id)
+            .maybeSingle();
+
+        if (profileError) throw profileError;
+
+        let profile = existingProfile;
+
+        if (!profile) {
+          const metadata = authUser.user_metadata ?? {};
+          const metadataName =
+            metadata.full_name ?? metadata.name;
+
+          const fullName =
+            (typeof metadataName === 'string' && metadataName.trim()) ||
+            authUser.email?.split('@')[0] ||
+            'Omic Hub User';
+
+          const requestedUserType =
+            metadata.user_type === 'recruiter' ? 'recruiter' : 'student';
+
+          const requestedCompanyName =
+            typeof metadata.company_name === 'string'
+              ? metadata.company_name.trim()
+              : '';
+
+          const { data: newProfile, error: insertError } =
+            await supabase
+              .from('profiles')
+              .insert({
+                id: authUser.id,
+                full_name: fullName,
+                user_type: requestedUserType,
+                company_name:
+                  requestedUserType === 'recruiter'
+                    ? requestedCompanyName || null
+                    : null,
+              })
+              .select('id, full_name, user_type, company_name')
+              .single();
+
+          if (insertError) throw insertError;
+
+          profile = newProfile;
+        }
+
+        if (!active) return;
+
+        const metadata = authUser.user_metadata ?? {};
+        const metadataAvatar =
+          metadata.avatar_url ?? metadata.picture;
+
+        const avatar =
+          typeof metadataAvatar === 'string'
+            ? metadataAvatar
+            : '';
+
+        const userType =
+          profile.user_type === 'recruiter'
+            ? 'recruiter'
+            : 'student';
+
+        const displayName =
+          profile.full_name || authUser.email?.split('@')[0] || 'User';
+
+        const authenticatedUser: UserProfile = {
+          id: authUser.id,
+          name: displayName,
+          email: authUser.email ?? '',
+          avatar,
+          role: userType === 'recruiter' ? 'Recruiter' : 'Student',
+          targetRole: '',
+          experienceLevel: 'Entry',
+          targetIndustry: '',
+          location: '',
+          atsScore: 0,
+          totalApplications: 0,
+          activeInterviews: 0,
+          learningHours: 0,
+          interviewReadiness: 0,
+          isResumeUploaded: false,
+          userType,
+          companyName: profile.company_name ?? undefined,
+          omicHubProfileUrl: `omichub.bio/talent/${displayName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_|_$/g, '')}`,
+          hasSelectedPlan: userType === 'recruiter',
+          hasCompletedResumeOnboarding: false,
+        };
+
+        handleLoginSuccess(authenticatedUser);
+        showToast(`Welcome to Omic Hub, ${displayName}!`, 'success');
+      } catch (error: unknown) {
+        console.error('Supabase session/profile error:', error);
+
+        processedAuthUserId.current = null;
+
+        if (active) {
+          showToast(
+            error instanceof Error
+              ? error.message
+              : 'Could not load your Omic Hub profile.',
+            'error',
+          );
+        }
+      }
+    };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        // Defer database work until after the auth callback finishes.
+        setTimeout(() => {
+          void processSession(session.user);
+        }, 0);
+      } else if (event === 'SIGNED_OUT') {
+        processedAuthUserId.current = null;
+      }
+    });
+
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        console.error('Could not retrieve Supabase session:', error);
+        return;
+      }
+
+      if (data.session?.user) {
+        void processSession(data.session.user);
+      }
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return StorageService.isAuthenticated();
+  });
+  const [user, setUser] = useState<UserProfile>(() => {
+    return StorageService.getUser();
+  });
+
+  // App Navigation State & Mobile Drawer State
+  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
+
+  // Modals for Real-Time Vault, Data Retrieval, Profile & Settings, Plan Selection, and Feature Gate
+  const [isDataRetrievalOpen, setIsDataRetrievalOpen] = useState(false);
+  const [isDataVaultOpen, setIsDataVaultOpen] = useState(false);
+  const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [isFeatureGateOpen, setIsFeatureGateOpen] = useState(false);
+  const [gatedFeatureInfo, setGatedFeatureInfo] = useState<{
+    name: string;
+    requiredTier: SubscriptionPlanTier;
+    description?: string;
+    targetTab?: ActiveTab;
+  }>({
+    name: 'Pro Career Accelerator',
+    requiredTier: 'pro',
+  });
+  const [profileSettingsTab, setProfileSettingsTab] = useState<'profile' | 'settings'>('profile');
+
+  // Core Data States
+  const [resume, setResume] = useState<ResumeData>(() => StorageService.getResume());
+  const [applications, setApplications] = useState<JobApplication[]>(() =>
+    StorageService.getApplications()
+  );
+  const [activities, setActivities] = useState<ActivityItem[]>(() =>
+    StorageService.getActivities()
+  );
+  const [courses, setCourses] = useState<Course[]>(() => StorageService.getCourses());
+  const [scheduledInterviews, setScheduledInterviews] = useState<ScheduledInterview[]>(() =>
+    StorageService.getScheduledInterviews()
+  );
+
+  // Real-time synchronization across browser tabs and background storage events
+  useEffect(() => {
+    const unsubscribe = StorageService.subscribe((key) => {
+      setUser(StorageService.getUser());
+      setResume(StorageService.getResume());
+      setApplications(StorageService.getApplications());
+      setActivities(StorageService.getActivities());
+      setCourses(StorageService.getCourses());
+      setScheduledInterviews(StorageService.getScheduledInterviews());
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Global Keyboard Shortcut for on-demand data search (Ctrl+K / Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsDataRetrievalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Synchronize Auth on Login
+  const handleLoginSuccess = (authenticatedUser: UserProfile) => {
+    setUser(authenticatedUser);
+    setIsAuthenticated(true);
+    StorageService.saveUser(authenticatedUser);
+    StorageService.setAuthenticated(true);
+
+    if (authenticatedUser.hasSelectedPlan) {
+      setActiveTab('dashboard');
+    }
+
+    StorageService.addActivity({
+      type: 'resume',
+      title: 'Signed In to Omic Hub',
+      description: `Authenticated as ${authenticatedUser.name} (${authenticatedUser.role})`,
+      badge: 'Session Active',
+    });
+    setActivities(StorageService.getActivities());
+  };
+
+  // Handle Plan Selection from Post-Sign-In Landing Page or Modal
+  const handleSelectPlan = (tier: SubscriptionPlanTier, targetTab: ActiveTab = 'builder') => {
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 90);
+
+    const updatedUser: UserProfile = {
+      ...user,
+      planTier: tier,
+      planStatus: 'trial',
+      trialEndDate: trialEnd.toISOString(),
+      hasSelectedPlan: true,
+      hasCompletedResumeOnboarding: true,
+    };
+
+    setUser(updatedUser);
+    StorageService.saveUser(updatedUser);
+
+    // Direct to target tab (dashboard or builder or as chosen)
+    setActiveTab(targetTab);
+
+    StorageService.addActivity({
+      type: 'resume',
+      title: `Activated ${tier.toUpperCase()} Plan (3 Months Free Trial)`,
+      description: `Welcome offer active! Full access granted across all computational biology tools and verified talent networks.`,
+      badge: '3-Month Free Trial',
+    });
+    setActivities(StorageService.getActivities());
+
+    showToast(
+      `Plan confirmed: ${tier.toUpperCase()} (3 Months Free Trial Active)! Welcome to Omic Hub.`,
+      'success'
+    );
+  };
+
+  // Trigger Clean Subscription Plans modal whenever a user clicks Mock Interview or Full ATS Resume Scan
+  const handleTriggerUpgrade = (
+    featureName: string,
+    requiredTier: SubscriptionPlanTier = 'pro',
+    description?: string,
+    targetTab?: ActiveTab
+  ) => {
+    setGatedFeatureInfo({
+      name: featureName,
+      requiredTier,
+      description,
+      targetTab,
+    });
+    setIsPlanModalOpen(true);
+  };
+
+  // Callback when user upgrades from FeatureGateModal
+  const handleUpgradeFromGate = (tier: SubscriptionPlanTier) => {
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 90);
+
+    const updatedUser: UserProfile = {
+      ...user,
+      planTier: tier,
+      planStatus: 'trial',
+      trialEndDate: trialEnd.toISOString(),
+      hasSelectedPlan: true,
+    };
+
+    setUser(updatedUser);
+    StorageService.saveUser(updatedUser);
+
+    StorageService.addActivity({
+      type: 'resume',
+      title: `Upgraded to ${tier.toUpperCase()}`,
+      description: `Unlocked ${gatedFeatureInfo.name} and all corresponding tier tools.`,
+      badge: `${tier.toUpperCase()} Active`,
+    });
+    setActivities(StorageService.getActivities());
+
+    if (gatedFeatureInfo.targetTab) {
+      setActiveTab(gatedFeatureInfo.targetTab);
+    }
+  };
+
+  // Gate Data Vault to Pro tier
+  const handleOpenDataVault = () => {
+    if (user.planTier !== 'pro') {
+      handleTriggerUpgrade(
+        'Advanced Bioinformatics Pipelines Data Vault',
+        'pro',
+        'The Advanced Pipelines Data Vault offers multi-revision automated snapshots, 1-click cloud rollbacks, and tamper-proof JSON checkpoints for your bioinformatics career records.'
+      );
+      return;
+    }
+    setIsDataVaultOpen(true);
+  };
+
+  // Logout
+  const handleLogout = async () => {
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    console.error('Supabase sign-out error:', error);
+    showToast('Could not sign out. Please try again.', 'error');
+    return;
+  }
+
+  setIsAuthenticated(false);
+  StorageService.setAuthenticated(false);
+  processedAuthUserId.current = null;
+  showToast('Signed out of Omic Hub', 'info');
+};
+  // Refresh all state after a restore from backup
+  const handleRefreshAllData = () => {
+    setUser(StorageService.getUser());
+    setResume(StorageService.getResume());
+    setApplications(StorageService.getApplications());
+    setActivities(StorageService.getActivities());
+    setCourses(StorageService.getCourses());
+    setScheduledInterviews(StorageService.getScheduledInterviews());
+  };
+
+  // Resume Save Handler
+  const handleSaveResume = (updated: ResumeData) => {
+    setResume(updated);
+    StorageService.saveResume(updated);
+  };
+
+  // Applications Save Handler
+  const handleSaveApplications = (updated: JobApplication[]) => {
+    setApplications(updated);
+    StorageService.saveApplications(updated);
+    setUser((prev) => {
+      const nextUser = { ...prev, totalApplications: updated.length };
+      StorageService.saveUser(nextUser);
+      return nextUser;
+    });
+  };
+
+  // Courses Save Handler
+  const handleSaveCourses = (updated: Course[]) => {
+    setCourses(updated);
+    StorageService.saveCourses(updated);
+    const totalHours = updated.reduce((acc, c) => acc + c.completedHours, 0);
+    setUser((prev) => {
+      const nextUser = { ...prev, learningHours: totalHours };
+      StorageService.saveUser(nextUser);
+      return nextUser;
+    });
+  };
+
+  // Scheduled Interviews Save Handler
+  const handleSaveInterviews = (updated: ScheduledInterview[]) => {
+    setScheduledInterviews(updated);
+    StorageService.saveScheduledInterviews(updated);
+  };
+
+  // Apply enhanced bullet from analyzer directly to active resume
+  const handleApplyBulletToResume = (enhancedBullet: string) => {
+    if (!resume.workExperiences.length) return;
+    const copy = { ...resume };
+    copy.workExperiences[0].bullets.unshift(enhancedBullet);
+    handleSaveResume(copy);
+    StorageService.addActivity({
+      type: 'resume',
+      title: 'Applied AI Enhanced Bullet',
+      description: `Updated primary experience role with high-yield XYZ metric bullet.`,
+      badge: 'Score Boost',
+    });
+    setActivities(StorageService.getActivities());
+  };
+
+  // Profile & Settings Pop-up Handlers
+  const handleOpenProfileSettings = (tab: 'profile' | 'settings' = 'profile') => {
+    setProfileSettingsTab(tab);
+    setIsProfileSettingsOpen(true);
+  };
+
+  const handleUpdateUser = (updatedUser: UserProfile) => {
+    setUser(updatedUser);
+  };
+
+  // If not authenticated, render the SignInPage
+  if (!isAuthenticated) {
+    return <SignInPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // Post-Sign-In Dedicated Landing Page: Options for Basic, Plus, and Pro with First 3 Months Free
+  // (Recruiters proceed directly to their specialized recruiter talent hub)
+  if (user.userType !== 'recruiter' && !user.hasSelectedPlan) {
+    return (
+      <PlanSelectionLandingPage
+        user={user}
+        onSelectPlan={(tier) => handleSelectPlan(tier, 'builder')}
+        onNavigateTab={() => {
+          handleSelectPlan(user.planTier || 'basic', 'builder');
+        }}
+      />
+    );
+  }
+
+  // STRICT ACCESS CONTROL FOR RECRUITERS:
+  // Dedicated recruiter workspace with top-level ATS navigation, candidate matching, pipeline, and analytics.
+  if (user.userType === 'recruiter') {
+    return (
+      <RecruiterDashboardView
+        user={user}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#fafbfc] text-neutral-900 flex font-sans selection:bg-neutral-900 selection:text-white relative overflow-x-hidden">
+      {/* Left-Side Corner Navigation Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        user={user}
+        onLogout={handleLogout}
+        atsScore={user.atsScore}
+        totalApplications={applications.length}
+        onOpenDataRetrieval={() => setIsDataRetrievalOpen(true)}
+        onOpenDataVault={handleOpenDataVault}
+        onOpenProfileSettings={handleOpenProfileSettings}
+        onOpenPlanModal={() => setIsPlanModalOpen(true)}
+        onTriggerUpgrade={(feat, tier) =>
+          handleTriggerUpgrade(
+            feat,
+            tier || 'pro',
+            undefined,
+            feat.includes('Audit') ? 'analyzer' : feat.includes('Interview') ? 'mock-interview' : undefined
+          )
+        }
+        mobileOpen={mobileSidebarOpen}
+        setMobileOpen={setMobileSidebarOpen}
+        isOpen={mobileSidebarOpen}
+        setIsOpen={setMobileSidebarOpen}
+      />
+
+      {/* Main Content Area (Full width with collapsible drawer) */}
+      <div className="flex-1 min-w-0 flex flex-col transition-all relative z-10">
+        {/* Top Header Bar */}
+        <TopHeader
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          user={user}
+          onLogout={handleLogout}
+          atsScore={user.atsScore}
+          onOpenMobileMenu={() => setMobileSidebarOpen(true)}
+          onOpenSidebar={() => setMobileSidebarOpen(true)}
+          onOpenDataRetrieval={() => setIsDataRetrievalOpen(true)}
+          onOpenDataVault={handleOpenDataVault}
+          onOpenProfileSettings={handleOpenProfileSettings}
+          onOpenPlanModal={() => setIsPlanModalOpen(true)}
+        />
+
+        {/* Dynamic Viewport */}
+        <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+          {activeTab === 'dashboard' && (
+            <DashboardView
+              user={user}
+              resume={resume}
+              applications={applications}
+              activities={activities}
+              atsScore={user.atsScore}
+              setActiveTab={setActiveTab}
+              onOpenResumeBuilder={() => setActiveTab('builder')}
+              onOpenMockInterview={() => {
+                if (user.planTier !== 'pro') {
+                  handleTriggerUpgrade('Live AI Mock Interview Simulator', 'pro', undefined, 'mock-interview');
+                  return;
+                }
+                setActiveTab('mock-interview');
+              }}
+              onOpenResumeAnalyzer={() => {
+                if (user.planTier === 'basic') {
+                  handleTriggerUpgrade('AI Resume Audit & ATS Scoring', 'plus', undefined, 'analyzer');
+                  return;
+                }
+                setActiveTab('analyzer');
+              }}
+              onOpenDataRetrieval={() => setIsDataRetrievalOpen(true)}
+              onOpenDataVault={handleOpenDataVault}
+              onOpenProfileSettings={() => handleOpenProfileSettings('profile')}
+              onUpdateResume={handleSaveResume}
+              onUpdateUser={handleUpdateUser}
+            />
+          )}
+
+          {(activeTab === 'builder' || activeTab === 'analyzer') && (
+            <ATSAndResumeView
+              currentResume={resume}
+              onSaveResume={handleSaveResume}
+              onApplyBulletToResume={handleApplyBulletToResume}
+              onBackToDashboard={() => setActiveTab('dashboard')}
+              userPlan={user.planTier}
+              atsScore={user.atsScore}
+              user={user}
+              onUpdateUser={handleUpdateUser}
+            />
+          )}
+
+          {activeTab === 'certification' && (
+            <CertificationsView
+              user={user}
+              resume={resume}
+              onNavigateSkills={() => setActiveTab('skills')}
+            />
+          )}
+
+          {activeTab === 'news' && (
+            <div className="rounded-2xl bg-white border border-neutral-200 shadow-xs p-4 sm:p-6 animate-in fade-in">
+              <BioinformaticsNews onNavigateTab={setActiveTab} />
+            </div>
+          )}
+
+          {activeTab === 'tracker' && (
+            <JobTrackerView
+              applications={applications}
+              onSaveApplications={handleSaveApplications}
+              onScheduleInterview={(app) => {
+                if (user.planTier !== 'pro') {
+                  handleTriggerUpgrade('Live AI Mock Interview Simulator', 'pro', undefined, 'mock-interview');
+                  return;
+                }
+                setActiveTab('mock-interview');
+              }}
+            />
+          )}
+
+          {activeTab === 'skills' && (
+            <SkillPathsView
+              courses={courses}
+              onSaveCourses={handleSaveCourses}
+              userRole={user.role}
+              targetRole={user.targetRole}
+              userPlan={user.planTier}
+              onTriggerUpgrade={(feat, tier) => handleTriggerUpgrade(feat, tier || 'pro')}
+            />
+          )}
+
+          {activeTab === 'mock-interview' && (
+            user.planTier !== 'pro' ? (
+              <div className="rounded-2xl bg-white border border-neutral-200 p-8 sm:p-12 text-center space-y-6 max-w-3xl mx-auto shadow-xs animate-in fade-in">
+                <div className="w-14 h-14 rounded-xl bg-neutral-100 border border-neutral-200 flex items-center justify-center mx-auto text-neutral-800">
+                  <Crown className="w-6 h-6 text-neutral-800" />
+                </div>
+                <div className="space-y-2">
+                  <span className="text-xs font-semibold text-neutral-600 uppercase tracking-wider bg-neutral-100 px-3 py-1 rounded-full border border-neutral-200">
+                    Pro Exclusive Feature
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
+                    Technical Mock Interview Simulator
+                  </h2>
+                  <p className="text-sm text-neutral-500 max-w-xl mx-auto leading-relaxed">
+                    Engage in technical coding drills and computational biology behavioral interviews benchmarked against Broad Institute, Illumina, and Schrödinger hiring standards.
+                  </p>
+                </div>
+                <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-200 text-xs text-neutral-600 max-w-md mx-auto flex items-center justify-between">
+                  <div className="text-left">
+                    <span className="font-bold text-neutral-900 block">Live Voice & Evaluation</span>
+                    <span className="text-[11px] text-neutral-500">STAR rubric analysis with score breakdown</span>
+                  </div>
+                  <span className="text-xs font-bold font-mono text-neutral-900 bg-white px-2.5 py-1 rounded-md border border-neutral-200">
+                    Pro Tier (₹49)
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleTriggerUpgrade('Live AI Mock Interview Simulator', 'pro', undefined, 'mock-interview')}
+                  className="px-6 py-2.5 rounded-lg bg-neutral-900 hover:bg-black text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                >
+                  Upgrade to Pro (₹49)
+                </button>
+              </div>
+            ) : (
+              <MockInterviewView
+                scheduledInterviews={scheduledInterviews}
+                onSaveInterviews={handleSaveInterviews}
+                targetRole={user.targetRole}
+                resume={resume}
+                onUpdateResume={handleSaveResume}
+              />
+            )
+          )}
+
+          {activeTab === 'pricing' && (
+            <div className="rounded-2xl bg-white border border-neutral-200 shadow-xs overflow-hidden animate-in fade-in">
+              <PlanSelectionLandingPage
+                user={user}
+                onSelectPlan={(tier) => {
+                  handleSelectPlan(tier, 'builder');
+                  setActiveTab('builder');
+                }}
+                onNavigateTab={() => setActiveTab('builder')}
+                isTabMode={true}
+              />
+            </div>
+          )}
+        </main>
+
+        {/* Modern Clean Footer */}
+        <footer className="no-print border-t border-neutral-200 bg-white py-6 text-center text-xs text-neutral-500">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="font-medium text-neutral-600 flex items-center gap-2">
+              <span className="font-bold text-neutral-900">OMIC HUB</span>
+              <span>&bull; Career Acceleration & Resume Intelligence Platform</span>
+            </p>
+            <div className="flex items-center gap-4 text-neutral-500 font-mono text-[11px]">
+              <span>ATS Calibration v3.8</span>
+              <span>&bull;</span>
+              <span>STAR Rubric</span>
+              <span>&bull;</span>
+              <span>Workday & Greenhouse Compatible</span>
+            </div>
+          </div>
+        </footer>
+      </div>
+
+      {/* Floating Real-Time Data Retrieval Quick Button */}
+      <aside aria-label="Quick Actions" className="fixed bottom-6 right-6 z-40 flex items-center gap-2 no-print">
+        <button
+          onClick={() => setIsDataRetrievalOpen(true)}
+          className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xl shadow-indigo-600/30 transition-all hover:scale-105 active:scale-95 cursor-pointer border border-indigo-400/30"
+          title="Quick Retrieve Any Saved Data (Ctrl+K)"
+        >
+          <Search className="w-4 h-4" />
+          <span className="hidden sm:inline">Retrieve Data</span>
+        </button>
+
+        <button
+          onClick={handleOpenDataVault}
+          className="p-2.5 rounded-2xl bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-700 shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer"
+          title="Data Vault & Backups"
+        >
+          <Database className="w-4 h-4 text-emerald-400" />
+        </button>
+      </aside>
+
+      {/* Data Retrieval Modal (Command Palette Search) */}
+      <DataRetrievalModal
+        isOpen={isDataRetrievalOpen}
+        onClose={() => setIsDataRetrievalOpen(false)}
+        onNavigateTab={(tab) => setActiveTab(tab)}
+      />
+
+      {/* Data Vault & Backup Modal */}
+      <DataVaultModal
+        isOpen={isDataVaultOpen}
+        onClose={() => setIsDataVaultOpen(false)}
+        onDataRestored={handleRefreshAllData}
+      />
+
+      {/* Profile & Settings Pop-up Modal */}
+      <ProfileSettingsModal
+        isOpen={isProfileSettingsOpen}
+        onClose={() => setIsProfileSettingsOpen(false)}
+        user={user}
+        onUpdateUser={handleUpdateUser}
+        onOpenDataVault={handleOpenDataVault}
+        onOpenPlanModal={() => setIsPlanModalOpen(true)}
+        initialTab={profileSettingsTab}
+      />
+
+      {/* Clean Modal Dialog for Subscription Plans with Razorpay / UPI Gateway */}
+      <SubscriptionPlanModal
+        isOpen={isPlanModalOpen}
+        onClose={() => setIsPlanModalOpen(false)}
+        onUpgrade={(tier) => {
+          handleUpgradeFromGate(tier);
+          setIsPlanModalOpen(false);
+        }}
+        user={user}
+        initialSelectedTier={gatedFeatureInfo.requiredTier || 'pro'}
+        triggeredByFeature={gatedFeatureInfo.name}
+      />
+
+      {/* Sleek Glassmorphism Feature Gate Modal */}
+      <FeatureGateModal
+        isOpen={isFeatureGateOpen}
+        onClose={() => setIsFeatureGateOpen(false)}
+        onUpgrade={handleUpgradeFromGate}
+        user={user}
+        featureName={gatedFeatureInfo.name}
+        requiredTier={gatedFeatureInfo.requiredTier}
+        featureDescription={gatedFeatureInfo.description}
+      />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <MainApp />
+    </ToastProvider>
+  );
+}
