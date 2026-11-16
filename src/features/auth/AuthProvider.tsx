@@ -17,11 +17,12 @@ import { useToast } from '../../shared/ui/Toast';
 import type { UserProfile } from '../../types';
 import {
   clearAuthCallbackParams,
-  getSession,
   onAuthStateChange,
+  resolveInitialSession,
   signOut,
 } from './authClient';
 import {
+  getAuthCallbackKind,
   isPasswordRecoveryCallback,
   parseAuthCallbackError,
 } from './callback';
@@ -84,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const processedAuthUserId = useRef<string | null>(null);
   const announcedUserId = useRef<string | null>(null);
   const callbackErrorHandled = useRef(false);
+  const callbackNoticeShown = useRef(false);
 
   const applyUser = useCallback(
     (authenticatedUser: UserProfile, options: ApplyUserOptions = {}) => {
@@ -181,6 +183,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     let active = true;
     let initializationResolved = false;
+    const callbackKind = getAuthCallbackKind(
+      initialLocationHash,
+      initialLocationSearch,
+    );
+    const hasAuthCallback = callbackKind !== 'none';
+    let callbackInProgress = hasAuthCallback;
+
+    const notifyCallbackFailure = (message: string) => {
+      if (callbackNoticeShown.current) return;
+
+      callbackNoticeShown.current = true;
+      showToast(message, 'error');
+    };
 
     const finishWithoutSession = () => {
       if (!active || initializationResolved) return;
@@ -261,7 +276,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (callbackError) {
         clearAuthCallbackParams();
-        showToast(
+        notifyCallbackFailure(
           getAuthErrorMessage(
             {
               code: callbackError.code,
@@ -269,7 +284,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             },
             AUTH_MESSAGES.authCallbackFailed,
           ),
-          'error',
         );
       }
     }
@@ -288,9 +302,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       if (event === 'SIGNED_OUT') {
-    clearDemoRecruiterSession();
-    clearAuthCallbackParams();
-    passwordRecoveryRef.current = false;
+        if (callbackInProgress) {
+          callbackInProgress = false;
+          notifyCallbackFailure(AUTH_MESSAGES.authCallbackFailed);
+        }
+
+        clearDemoRecruiterSession();
+        clearAuthCallbackParams();
+        passwordRecoveryRef.current = false;
         processedAuthUserId.current = null;
         announcedUserId.current = null;
         initializationResolved = true;
@@ -324,38 +343,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }, 0);
     });
 
-    void getSession()
+    void resolveInitialSession()
       .then((session) => {
+        callbackInProgress = false;
+
         if (!active) return;
 
+        if (hasAuthCallback) {
+          clearAuthCallbackParams();
+        }
+
         if (passwordRecoveryRef.current) {
-          setIsInitializing(false);
+          if (session?.user) {
+            setIsInitializing(false);
+            return;
+          }
+
+          // A recovery link that produced no session cannot continue; leaving
+          // the recovery screen up would strand the user.
+          passwordRecoveryRef.current = false;
+          setIsPasswordRecovery(false);
+          notifyCallbackFailure(AUTH_MESSAGES.resetLinkExpired);
+          finishWithoutSession();
           return;
         }
 
         if (session?.user) {
-          void processSession(session.user, false);
-        } else {
-          finishWithoutSession();
-        }
-      })
-      .catch((error: unknown) => {
-        if (!active) return;
-
-        console.error('Could not retrieve Supabase session:', error);
-
-        if (passwordRecoveryRef.current) {
-          setIsInitializing(false);
+          // PKCE recovery callbacks arrive as `?code=...`; the recovery type is
+          // carried by the stored verifier and surfaced through the
+          // PASSWORD_RECOVERY event, not the URL. Defer one macrotask so that
+          // event can switch the UI to the reset screen before we load the
+          // profile for the normal authenticated shell.
+          if (hasAuthCallback) {
+            setTimeout(() => {
+              if (active && !passwordRecoveryRef.current) {
+                void processSession(session.user, false);
+              }
+            }, 0);
+          } else {
+            void processSession(session.user, false);
+          }
           return;
         }
 
         finishWithoutSession();
 
-        const friendlyMessage = getAuthErrorMessage(error, '');
-
-        if (friendlyMessage) {
-          showToast(friendlyMessage, 'error');
+        // supabase-js silently ignores a `?code=` callback when it cannot find
+        // the matching verifier (for example when the link was opened in a
+        // different browser). Treat a callback URL without a session as an
+        // incomplete sign-in instead of bouncing back to the sign-in page.
+        if (callbackKind === 'pkce' || callbackKind === 'implicit') {
+          notifyCallbackFailure(AUTH_MESSAGES.oauthIncomplete);
         }
+      })
+      .catch((error: unknown) => {
+        callbackInProgress = false;
+
+        if (!active) return;
+
+        if (hasAuthCallback) {
+          clearAuthCallbackParams();
+        }
+
+        console.error('Could not retrieve Supabase session:', error);
+
+        if (passwordRecoveryRef.current) {
+          passwordRecoveryRef.current = false;
+          setIsPasswordRecovery(false);
+          notifyCallbackFailure(
+            getAuthErrorMessage(error, AUTH_MESSAGES.resetLinkExpired),
+          );
+          finishWithoutSession();
+          return;
+        }
+
+        finishWithoutSession();
+        notifyCallbackFailure(
+          getAuthErrorMessage(
+            error,
+            hasAuthCallback
+              ? AUTH_MESSAGES.authCallbackFailed
+              : AUTH_MESSAGES.sessionRestoreFailed,
+          ),
+        );
       });
 
     return () => {

@@ -4,6 +4,11 @@ import {
   buildAuthRedirectUrl,
   stripAuthCallbackParams,
 } from './callback';
+import {
+  resolveInitialSessionWithClient,
+  signInWithGoogleWithClient,
+  signOutWithClient,
+} from './authOperations';
 import { AUTH_MESSAGES } from './messages';
 
 export interface StudentSignUpInput {
@@ -48,17 +53,18 @@ export function clearAuthCallbackParams(): void {
 }
 
 export async function signInWithGoogle(): Promise<void> {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: getAuthRedirectUrl(),
-      queryParams: {
-        prompt: 'select_account',
-      },
-    },
-  });
+  return signInWithGoogleWithClient(supabase, getAuthRedirectUrl());
+}
 
-  if (error) throw error;
+/**
+ * Resolve the session after supabase-js has processed any callback URL.
+ *
+ * This deliberately uses `initialize()` rather than `getSession()`: the latter
+ * ignores errors raised while consuming the callback, which is what made
+ * failed OAuth attempts bounce silently back to the sign-in screen.
+ */
+export function resolveInitialSession(): Promise<AuthSession | null> {
+  return resolveInitialSessionWithClient(supabase);
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
@@ -124,19 +130,7 @@ export async function updatePassword(password: string): Promise<void> {
 }
 
 export async function signOut(): Promise<void> {
-  try {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) throw error;
-  } catch (error: unknown) {
-    try {
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch (localError: unknown) {
-      console.error('Could not clear the local Supabase session:', localError);
-    }
-
-    throw error;
-  }
+  return signOutWithClient(supabase);
 }
 
 export function onAuthStateChange(handler: AuthStateChangeHandler) {

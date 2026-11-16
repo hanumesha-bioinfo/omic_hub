@@ -75,6 +75,46 @@ export function parseAuthCallbackError(
   };
 }
 
+export type AuthCallbackKind = 'none' | 'error' | 'pkce' | 'implicit';
+
+/**
+ * Classify the auth data present in the current URL.
+ *
+ * `pkce` callbacks arrive as `?code=...` and are exchanged by supabase-js.
+ * `implicit` callbacks arrive as `#access_token=...` from older links.
+ * A URL can contain callback data that supabase-js refuses to consume (for
+ * example a PKCE code with no stored verifier), so callers must treat
+ * `pkce`/`implicit` without a resulting session as an incomplete sign-in.
+ */
+export function getAuthCallbackKind(
+  hash: string,
+  search = '',
+): AuthCallbackKind {
+  const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+  const searchParams = new URLSearchParams(search);
+
+  if (
+    readParam(hashParams, searchParams, 'error') ||
+    readParam(hashParams, searchParams, 'error_code') ||
+    readParam(hashParams, searchParams, 'error_description')
+  ) {
+    return 'error';
+  }
+
+  if (readParam(hashParams, searchParams, 'code')) {
+    return 'pkce';
+  }
+
+  if (
+    readParam(hashParams, searchParams, 'access_token') ||
+    readParam(hashParams, searchParams, 'refresh_token')
+  ) {
+    return 'implicit';
+  }
+
+  return 'none';
+}
+
 export function stripAuthCallbackParams(href: string): string {
   try {
     const url = new URL(href);

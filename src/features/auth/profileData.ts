@@ -111,17 +111,25 @@ export async function loadOrCreateProfileWithClient(
     return data as ProfileRecord;
   }
 
-  if (isUniqueViolation(error)) {
-    try {
-      const existingAfterConflict = await fetchProfile(client, authUser.id);
+  // Another writer (a database trigger or a parallel tab) may have created the
+  // row between the read and the insert. Re-read before falling back so a
+  // transient insert error never loses an existing profile.
+  try {
+    const existingAfterInsertError = await fetchProfile(client, authUser.id);
 
-      if (existingAfterConflict) return existingAfterConflict;
-    } catch (refetchError) {
-      console.warn(
-        '[auth] Could not re-read the profile after a duplicate-key conflict.',
-        refetchError,
-      );
-    }
+    if (existingAfterInsertError) return existingAfterInsertError;
+  } catch (refetchError) {
+    console.warn(
+      '[auth] Could not re-read the profile after an insert failure.',
+      refetchError,
+    );
+  }
+
+  if (isUniqueViolation(error)) {
+    console.warn(
+      '[auth] The profile already exists but could not be re-read.',
+      error,
+    );
   }
 
   console.warn(

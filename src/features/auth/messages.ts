@@ -39,9 +39,15 @@ export const AUTH_MESSAGES = {
     'This sign-in method is not enabled. Please use another method or contact support.',
   oauthCancelled: 'Sign-in was cancelled.',
   oauthFailed: 'Sign-in could not be completed. Please try again.',
+  oauthIncomplete:
+    'This sign-in link is no longer valid in this browser. Please return to Omic Hub and try signing in again.',
   resetLinkExpired: 'This link has expired. Please request a new one.',
   authCallbackFailed:
     'We could not complete sign-in from that link. Please try again.',
+  authRedirectMissing:
+    'Could not determine where to return after sign-in. Please reload the page and try again.',
+  sessionRestoreFailed:
+    'Could not restore your session. Please sign in again.',
 } as const;
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
@@ -63,6 +69,7 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   flow_state_expired: AUTH_MESSAGES.oauthFailed,
   flow_state_not_found: AUTH_MESSAGES.oauthFailed,
   otp_expired: AUTH_MESSAGES.resetLinkExpired,
+  pkce_code_verifier_not_found: AUTH_MESSAGES.oauthIncomplete,
   session_not_found: AUTH_MESSAGES.sessionExpired,
   session_expired: AUTH_MESSAGES.sessionExpired,
   refresh_token_not_found: AUTH_MESSAGES.sessionExpired,
@@ -101,26 +108,73 @@ const AUTH_MESSAGE_HINTS: ReadonlyArray<readonly [string, string]> = [
   ['refresh token', AUTH_MESSAGES.sessionExpired],
   ['provider is not enabled', AUTH_MESSAGES.providerDisabled],
   ['unsupported provider', AUTH_MESSAGES.providerDisabled],
+  ['code verifier', AUTH_MESSAGES.oauthIncomplete],
+  ['invalid flow state', AUTH_MESSAGES.oauthFailed],
+  ['flow state', AUTH_MESSAGES.oauthFailed],
+  ['no session defined in url', AUTH_MESSAGES.authCallbackFailed],
+  ['not a valid pkce flow url', AUTH_MESSAGES.authCallbackFailed],
   ['access denied', AUTH_MESSAGES.oauthCancelled],
+  ['user cancelled', AUTH_MESSAGES.oauthCancelled],
+  ['user canceled', AUTH_MESSAGES.oauthCancelled],
   ['cancelled the sign-in', AUTH_MESSAGES.oauthCancelled],
   ['link is invalid or has expired', AUTH_MESSAGES.resetLinkExpired],
   ['rate limit', AUTH_MESSAGES.rateLimited],
   ['too many requests', AUTH_MESSAGES.rateLimited],
 ];
 
-function readErrorField(
-  error: unknown,
-  field: 'code' | 'message',
+function readStringField(
+  value: unknown,
+  field: string,
 ): string | undefined {
-  if (typeof error === 'object' && error !== null && field in error) {
-    const value = (error as Record<string, unknown>)[field];
+  if (typeof value !== 'object' || value === null || !(field in value)) {
+    return undefined;
+  }
 
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim();
-    }
+  const candidate = (value as Record<string, unknown>)[field];
+
+  if (typeof candidate === 'string' && candidate.trim()) {
+    return candidate.trim();
   }
 
   return undefined;
+}
+
+function readErrorField(
+  error: unknown,
+  field: 'code' | 'message',
+  depth = 0,
+): string | undefined {
+  if (depth > 2) return undefined;
+
+  const direct = readStringField(error, field);
+
+  if (direct) return direct;
+
+  const details =
+    typeof error === 'object' && error !== null
+      ? (error as Record<string, unknown>).details
+      : undefined;
+
+  if (field === 'code') {
+    const detailsCode =
+      readStringField(details, 'code') ?? readStringField(details, 'error');
+
+    if (detailsCode) return detailsCode;
+  } else {
+    const detailsMessage =
+      readStringField(details, 'message') ??
+      readStringField(details, 'description') ??
+      readStringField(details, 'error_description');
+
+    if (detailsMessage) return detailsMessage;
+  }
+
+  const nestedError =
+    typeof error === 'object' && error !== null
+      ? (error as Record<string, unknown>).error
+      : undefined;
+
+  return readErrorField(nestedError, field, depth + 1);
 }
 
 export function getAuthErrorMessage(error: unknown, fallback: string): string {
