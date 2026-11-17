@@ -136,6 +136,8 @@ test('a client-side checkout close does not grant premium; only the verified pla
     fetchVerifiedPlan: async () => plan,
     requestOrder: async () => order,
     openCheckout,
+    retryAttempts: 1,
+    retryDelayMs: 0,
   });
 
   const afterClose = await authority.checkout();
@@ -150,4 +152,50 @@ test('a client-side checkout close does not grant premium; only the verified pla
   assert.equal(afterVerified, 'premium');
   applyTier(afterVerified);
   assert.equal(upgradeCalls, 1, 'only the verified active plan may activate premium');
+});
+
+test('the authoritative plan is re-read only after an async checkout modal closes', async () => {
+  const order: PaymentOrder = {
+    orderId: 'order_async',
+    amountPaise: 4900,
+    currency: 'INR',
+    keyId: 'rzp_test_key',
+  };
+  const events: string[] = [];
+  let plan: VerifiedPlan = { tier: null, active: false };
+  const closeRef: { resolve: (() => void) | null } = { resolve: null };
+
+  const openCheckout: CheckoutOpener = (_options, callbacks) => {
+    events.push('open');
+    return new Promise<void>((resolve) => {
+      closeRef.resolve = () => {
+        // The webhook has verified payment by the time the modal closes.
+        plan = { tier: 'premium', active: true };
+        events.push('close');
+        callbacks.onClose();
+        resolve();
+      };
+    });
+  };
+
+  const authority = createPlanAuthority({
+    fetchVerifiedPlan: async () => {
+      events.push('read-plan');
+      return plan;
+    },
+    requestOrder: async () => order,
+    openCheckout,
+    retryAttempts: 1,
+    retryDelayMs: 0,
+  });
+
+  const checkoutPromise = authority.checkout();
+  // Nothing should read the plan before the modal closes.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(events, ['open'], 'plan must not be read while checkout is open');
+
+  closeRef.resolve?.();
+  const tier = await checkoutPromise;
+  assert.equal(tier, 'premium');
+  assert.deepEqual(events, ['open', 'close', 'read-plan'], 'plan must be read after close');
 });

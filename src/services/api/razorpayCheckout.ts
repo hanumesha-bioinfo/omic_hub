@@ -31,11 +31,17 @@ function loadScript(): Promise<void> {
 
   return new Promise((resolve, reject) => {
     const script = existing ?? document.createElement('script');
-    script.addEventListener('load', () => {
+    const onLoad = () => {
       script.dataset.loaded = 'true';
       resolve();
-    });
-    script.addEventListener('error', () => reject(new Error('Unable to load Razorpay checkout')));
+    };
+    const onError = () => {
+      // Drop the failed element so a later attempt creates a fresh script.
+      script.remove();
+      reject(new Error('Unable to load Razorpay checkout'));
+    };
+    script.addEventListener('load', onLoad, { once: true });
+    script.addEventListener('error', onError, { once: true });
     if (!existing) {
       script.src = RAZORPAY_SCRIPT_URL;
       script.async = true;
@@ -44,6 +50,10 @@ function loadScript(): Promise<void> {
   });
 }
 
+/**
+ * Loads Razorpay on demand and resolves only when the checkout modal closes,
+ * so callers can re-read the authoritative plan after payment is submitted.
+ */
 export const loadRazorpayCheckout: CheckoutOpener = async (options, callbacks) => {
   await loadScript();
   const Razorpay = (window as RazorpayWindow).Razorpay;
@@ -51,13 +61,24 @@ export const loadRazorpayCheckout: CheckoutOpener = async (options, callbacks) =
     throw new Error('Razorpay checkout is unavailable');
   }
 
-  new Razorpay({
-    key: options.keyId,
-    amount: options.amountPaise,
-    currency: options.currency,
-    name: options.name,
-    description: options.description,
-    order_id: options.orderId,
-    modal: { ondismiss: callbacks.onClose },
-  }).open();
+  await new Promise<void>((resolve) => {
+    let settled = false;
+    const close = () => {
+      if (settled) return;
+      settled = true;
+      callbacks.onClose();
+      resolve();
+    };
+
+    new Razorpay({
+      key: options.keyId,
+      amount: options.amountPaise,
+      currency: options.currency,
+      name: options.name,
+      description: options.description,
+      order_id: options.orderId,
+      handler: close,
+      modal: { ondismiss: close },
+    }).open();
+  });
 };

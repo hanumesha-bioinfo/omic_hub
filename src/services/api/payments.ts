@@ -23,7 +23,7 @@ export interface CheckoutOpener {
       description: string;
     },
     callbacks: { onClose: () => void },
-  ): void;
+  ): void | Promise<void>;
 }
 
 export interface PaymentDeps {
@@ -89,7 +89,9 @@ export async function startPremiumCheckout(
   } = deps;
 
   const order = await requestOrder();
-  openCheckout(
+  // Await the opener so callers only re-read the server after the checkout
+  // modal has closed. Openers that are synchronous still resolve immediately.
+  await openCheckout(
     {
       orderId: order.orderId,
       amountPaise: order.amountPaise,

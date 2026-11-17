@@ -72,6 +72,7 @@ function MainApp() {
   const planAuthorityRef = useRef(
     createPlanAuthority({ openCheckout: loadRazorpayCheckout }),
   );
+  const checkoutInFlightRef = useRef(false);
 
   const applyServerTier = (tier: SubscriptionPlanTier) => {
     setUser((current) => {
@@ -211,12 +212,20 @@ function MainApp() {
   // Open real Razorpay checkout; on close we re-read the server, which alone
   // decides whether premium becomes active.
   const handleCheckout = async () => {
+    if (checkoutInFlightRef.current) return;
+    checkoutInFlightRef.current = true;
     try {
+      showToast('Payment submitted. Confirming your plan...', 'info');
       const tier = await planAuthorityRef.current.checkout();
       applyServerTier(tier);
+      if (tier === 'premium') {
+        showToast('Premium is now active.', 'success');
+      }
     } catch (error) {
       console.error('Premium checkout failed', error);
       showToast('Could not start payment. Please try again.', 'error');
+    } finally {
+      checkoutInFlightRef.current = false;
     }
   };
 
