@@ -1,15 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import express from 'express';
+import express, { type RequestHandler, type Router } from 'express';
 import {
+  RAZORPAY_KEY_ID,
+  RAZORPAY_KEY_SECRET,
   SUPABASE_SERVICE_ROLE_KEY,
   SUPABASE_URL,
 } from '../server/config';
+import { razorpayClient, type RazorpayOrdersClient } from '../server/lib/razorpay';
 import {
   createPlanStore,
   planStore,
+  type CreateOrderRow,
+  type PlanStore,
   type SupabaseTableClient,
 } from '../server/lib/serverAdmin';
+import { createOrderRouter, orderRouter } from '../server/routes/payments';
+import { type AuthenticatedRequest } from '../server/middleware/auth';
 import { registerMiddleware, type RawBodyRequest } from '../server/middleware';
 
 interface DbOrderRow {
@@ -302,4 +309,257 @@ test('registerMiddleware captures the raw JSON body for webhook verification', a
       server.close((error) => (error ? reject(error) : resolve()));
     });
   }
+});
+
+interface FakeRazorpayCall {
+  amount: number;
+  currency: string;
+  receipt: string;
+  notes: Record<string, string>;
+}
+
+/** Fake Razorpay client that records every createOrder call and can fail on demand. */
+function fakeRazorpay(options: { id?: string; error?: Error } = {}) {
+  const calls: FakeRazorpayCall[] = [];
+  const client: RazorpayOrdersClient = {
+    async createOrder(input) {
+      calls.push(input);
+      if (options.error) throw options.error;
+      return { id: options.id ?? 'order_fake' };
+    },
+  };
+  return { client, calls };
+}
+
+/** Fake plan store that records persisted order rows and can fail on demand. */
+function fakeStore(options: { createOrderError?: Error } = {}) {
+  const rows: CreateOrderRow[] = [];
+  const store: PlanStore = {
+    async createOrder(row) {
+      if (options.createOrderError) throw options.createOrderError;
+      rows.push(row);
+    },
+    async getOrder() {
+      return null;
+    },
+    async markOrderPaid() {},
+    async getEntitlement() {
+      return null;
+    },
+    async upsertEntitlement() {},
+  };
+  return { store, rows };
+}
+
+const allowAuth: RequestHandler = (req, _res, next) => {
+  (req as AuthenticatedRequest).auth = {
+    userId: 'uuid-1',
+    role: 'student',
+    profile: {
+      id: 'uuid-1',
+      full_name: 'Ada Lovelace',
+      user_type: 'student',
+      company_name: null,
+    },
+  };
+  next();
+};
+
+const denyAuth: RequestHandler = (_req, res) => {
+  res.status(401).json({ error: 'Unauthorized' });
+};
+
+/** Boots an order router at /api/payments on an ephemeral loopback port. */
+async function withOrderRouter(
+  router: Router,
+  runRequest: (
+    post: (body?: unknown) => Promise<{ status: number; body: unknown }>,
+  ) => Promise<void>,
+) {
+  const app = express();
+  app.use(express.json());
+  app.use('/api/payments', router);
+  const server = app.listen(0, '127.0.0.1');
+  try {
+    await new Promise<void>((resolve) => server.once('listening', resolve));
+    const address = server.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('expected an ephemeral loopback TCP address');
+    }
+    const url = `http://127.0.0.1:${address.port}/api/payments/orders`;
+    await runRequest(async (body) => {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body ?? {}),
+      });
+      return { status: response.status, body: await response.json() };
+    });
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+}
+
+test('razorpayClient and orderRouter are lazy and import-safe with empty env', async () => {
+  assert.equal(typeof razorpayClient.createOrder, 'function');
+  assert.equal(typeof orderRouter, 'function');
+
+  if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+    await assert.rejects(
+      () =>
+        razorpayClient.createOrder({
+          amount: 4900,
+          currency: 'INR',
+          receipt: 'import-safety',
+          notes: {},
+        }),
+      /Missing RAZORPAY_KEY_ID \/ RAZORPAY_KEY_SECRET/,
+    );
+  }
+});
+
+test('POST /api/payments/orders returns 401 without authentication', async () => {
+  const { client } = fakeRazorpay();
+  const { store, rows } = fakeStore();
+  const router = createOrderRouter({
+    requireAuth: denyAuth,
+    razorpay: client,
+    store,
+    keyId: 'rzp_injected_key',
+  });
+
+  await withOrderRouter(router, async (post) => {
+    const { status, body } = await post({ tier: 'premium' });
+    assert.equal(status, 401);
+    assert.deepEqual(body, { error: 'Unauthorized' });
+  });
+  assert.equal(rows.length, 0);
+});
+
+test('POST /api/payments/orders rejects an unsupported tier with 400', async () => {
+  const { client, calls } = fakeRazorpay();
+  const { store, rows } = fakeStore();
+  const router = createOrderRouter({
+    requireAuth: allowAuth,
+    razorpay: client,
+    store,
+    keyId: 'rzp_injected_key',
+  });
+
+  await withOrderRouter(router, async (post) => {
+    const { status, body } = await post({ tier: 'plus' });
+    assert.equal(status, 400);
+    assert.ok(body && typeof body === 'object' && 'error' in body);
+  });
+  assert.equal(calls.length, 0);
+  assert.equal(rows.length, 0);
+});
+
+test('POST /api/payments/orders creates a premium order from server-side catalog values', async () => {
+  const { client, calls } = fakeRazorpay({ id: 'order_catalog_1' });
+  const { store, rows } = fakeStore();
+  const router = createOrderRouter({
+    requireAuth: allowAuth,
+    razorpay: client,
+    store,
+    keyId: 'rzp_injected_key',
+  });
+
+  await withOrderRouter(router, async (post) => {
+    const { status } = await post({ tier: 'premium', amount: 1, currency: 'USD' });
+    assert.equal(status, 200);
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].amount, 4900);
+  assert.equal(calls[0].currency, 'INR');
+  assert.deepEqual(calls[0].notes, { user_id: 'uuid-1', tier: 'premium' });
+  assert.equal(typeof calls[0].receipt, 'string');
+  assert.ok(calls[0].receipt.length > 0);
+  assert.deepEqual(rows, [
+    {
+      orderId: 'order_catalog_1',
+      userId: 'uuid-1',
+      tier: 'premium',
+      amountPaise: 4900,
+      currency: 'INR',
+    },
+  ]);
+});
+
+test('POST /api/payments/orders ignores a client-supplied userId when storing the order', async () => {
+  const { client } = fakeRazorpay({ id: 'order_auth_1' });
+  const { store, rows } = fakeStore();
+  const router = createOrderRouter({
+    requireAuth: allowAuth,
+    razorpay: client,
+    store,
+    keyId: 'rzp_injected_key',
+  });
+
+  await withOrderRouter(router, async (post) => {
+    const { status } = await post({ tier: 'premium', userId: 'attacker-uuid' });
+    assert.equal(status, 200);
+  });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].userId, 'uuid-1');
+});
+
+test('POST /api/payments/orders returns exactly the order id, catalog values and injected keyId', async () => {
+  const { client } = fakeRazorpay({ id: 'order_response_1' });
+  const { store } = fakeStore();
+  const router = createOrderRouter({
+    requireAuth: allowAuth,
+    razorpay: client,
+    store,
+    keyId: 'rzp_injected_key',
+  });
+
+  await withOrderRouter(router, async (post) => {
+    const { status, body } = await post({ tier: 'premium' });
+    assert.equal(status, 200);
+    assert.deepEqual(body, {
+      orderId: 'order_response_1',
+      amountPaise: 4900,
+      currency: 'INR',
+      keyId: 'rzp_injected_key',
+    });
+  });
+});
+
+test('POST /api/payments/orders returns 502 and stores nothing when Razorpay fails', async () => {
+  const { client } = fakeRazorpay({ error: new Error('gateway down') });
+  const { store, rows } = fakeStore();
+  const router = createOrderRouter({
+    requireAuth: allowAuth,
+    razorpay: client,
+    store,
+    keyId: 'rzp_injected_key',
+  });
+
+  await withOrderRouter(router, async (post) => {
+    const { status, body } = await post({ tier: 'premium' });
+    assert.equal(status, 502);
+    assert.ok(body && typeof body === 'object' && 'error' in body);
+  });
+  assert.equal(rows.length, 0);
+});
+
+test('POST /api/payments/orders returns 500 when the order cannot be persisted', async () => {
+  const { client } = fakeRazorpay({ id: 'order_store_fail' });
+  const { store } = fakeStore({ createOrderError: new Error('database down') });
+  const router = createOrderRouter({
+    requireAuth: allowAuth,
+    razorpay: client,
+    store,
+    keyId: 'rzp_injected_key',
+  });
+
+  await withOrderRouter(router, async (post) => {
+    const { status, body } = await post({ tier: 'premium' });
+    assert.equal(status, 500);
+    assert.ok(body && typeof body === 'object' && 'error' in body);
+  });
 });
