@@ -402,6 +402,23 @@ async function withOrderRouter(
   }
 }
 
+/** Captures console.error calls while a callback runs, always restoring the stub. */
+async function captureConsoleError<T>(
+  run: () => Promise<T>,
+): Promise<{ result: T; lines: string[] }> {
+  const argsSeen: unknown[][] = [];
+  const original = console.error;
+  console.error = (...args: unknown[]) => {
+    argsSeen.push(args);
+  };
+  try {
+    const result = await run();
+    return { result, lines: argsSeen.map((args) => JSON.stringify(args)) };
+  } finally {
+    console.error = original;
+  }
+}
+
 test('razorpayClient and orderRouter are lazy and import-safe with empty env', async () => {
   assert.equal(typeof razorpayClient.createOrder, 'function');
   assert.equal(typeof orderRouter, 'function');
@@ -530,7 +547,7 @@ test('POST /api/payments/orders returns exactly the order id, catalog values and
 });
 
 test('POST /api/payments/orders returns 502 and stores nothing when Razorpay fails', async () => {
-  const { client } = fakeRazorpay({ error: new Error('gateway down') });
+  const { client, calls } = fakeRazorpay({ error: new Error('gateway down') });
   const { store, rows } = fakeStore();
   const router = createOrderRouter({
     requireAuth: allowAuth,
@@ -539,12 +556,24 @@ test('POST /api/payments/orders returns 502 and stores nothing when Razorpay fai
     keyId: 'rzp_injected_key',
   });
 
-  await withOrderRouter(router, async (post) => {
-    const { status, body } = await post({ tier: 'premium' });
-    assert.equal(status, 502);
-    assert.ok(body && typeof body === 'object' && 'error' in body);
+  const { lines } = await captureConsoleError(async () => {
+    await withOrderRouter(router, async (post) => {
+      const { status, body } = await post({ tier: 'premium' });
+      assert.equal(status, 502);
+      assert.ok(body && typeof body === 'object' && 'error' in body);
+    });
   });
   assert.equal(rows.length, 0);
+  assert.equal(calls.length, 1);
+  assert.ok(
+    lines.some(
+      (line) =>
+        line.includes(calls[0].receipt) &&
+        line.includes('uuid-1') &&
+        line.includes('gateway down'),
+    ),
+    `expected a gateway-failure log with receipt, user and error, got ${JSON.stringify(lines)}`,
+  );
 });
 
 test('POST /api/payments/orders returns 500 when the order cannot be persisted', async () => {
@@ -557,9 +586,20 @@ test('POST /api/payments/orders returns 500 when the order cannot be persisted',
     keyId: 'rzp_injected_key',
   });
 
-  await withOrderRouter(router, async (post) => {
-    const { status, body } = await post({ tier: 'premium' });
-    assert.equal(status, 500);
-    assert.ok(body && typeof body === 'object' && 'error' in body);
+  const { lines } = await captureConsoleError(async () => {
+    await withOrderRouter(router, async (post) => {
+      const { status, body } = await post({ tier: 'premium' });
+      assert.equal(status, 500);
+      assert.ok(body && typeof body === 'object' && 'error' in body);
+    });
   });
+  assert.ok(
+    lines.some(
+      (line) =>
+        line.includes('order_store_fail') &&
+        line.includes('uuid-1') &&
+        line.includes('database down'),
+    ),
+    `expected a store-failure log with order id, user and error, got ${JSON.stringify(lines)}`,
+  );
 });

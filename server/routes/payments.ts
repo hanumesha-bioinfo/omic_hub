@@ -13,6 +13,10 @@ const PREMIUM_TIER = 'premium';
 const PREMIUM_AMOUNT_PAISE = 4900;
 const PREMIUM_CURRENCY = 'INR';
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export interface CreateOrderRouterDeps {
   requireAuth: RequestHandler;
   razorpay: RazorpayOrdersClient;
@@ -36,15 +40,23 @@ export function createOrderRouter(deps: CreateOrderRouterDeps): Router {
       return;
     }
 
+    const receipt = randomUUID();
     let order: { id: string };
     try {
       order = await deps.razorpay.createOrder({
         amount: PREMIUM_AMOUNT_PAISE,
         currency: PREMIUM_CURRENCY,
-        receipt: randomUUID(),
+        receipt,
         notes: { user_id: auth.userId, tier: PREMIUM_TIER },
       });
-    } catch {
+    } catch (error) {
+      // No order id exists yet; the receipt correlates a gateway-side attempt.
+      // The real client's message includes the gateway HTTP status when present.
+      console.error('Razorpay order creation failed', {
+        receipt,
+        userId: auth.userId,
+        error: errorMessage(error),
+      });
       res.status(502).json({ error: 'Payment gateway unavailable' });
       return;
     }
@@ -57,7 +69,14 @@ export function createOrderRouter(deps: CreateOrderRouterDeps): Router {
         amountPaise: PREMIUM_AMOUNT_PAISE,
         currency: PREMIUM_CURRENCY,
       });
-    } catch {
+    } catch (error) {
+      // A Razorpay order already exists here; log its id so a missing local
+      // row can be traced (reconciliation handled outside this task).
+      console.error('Failed to persist Razorpay order', {
+        orderId: order.id,
+        userId: auth.userId,
+        error: errorMessage(error),
+      });
       res.status(500).json({ error: 'Unable to create order' });
       return;
     }
