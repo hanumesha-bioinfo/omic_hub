@@ -1,4 +1,4 @@
-export type SubscriptionPlanTier = 'basic' | 'plus' | 'pro';
+export type SubscriptionPlanTier = 'free' | 'premium';
 
 export interface UserProfile {
   id: string;
@@ -29,8 +29,7 @@ export interface UserProfile {
   uploadedAt?: string;
   completedSkillsCount?: number;
   planTier?: SubscriptionPlanTier;
-  planStatus?: 'trial' | 'active' | 'free';
-  trialEndDate?: string;
+  planStatus?: 'active' | 'free';
   hasSelectedPlan?: boolean;
   hasCompletedResumeOnboarding?: boolean;
   userType?: 'student' | 'recruiter';

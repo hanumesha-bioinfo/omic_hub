@@ -37,7 +37,7 @@ export const ATSAndResumeView: React.FC<ATSAndResumeViewProps> = ({
   onSaveResume,
   onApplyBulletToResume,
   onBackToDashboard,
-  userPlan = 'pro',
+  userPlan = 'premium',
   atsScore = 85,
   user,
   onUpdateUser,

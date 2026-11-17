@@ -21,6 +21,7 @@ import {
   isValidEmail,
   normalizeEmail,
 } from '../src/features/auth/validation';
+import { DEFAULT_USER } from '../src/services/storage/defaults';
 
 test('uses one password policy for registration and reset', () => {
   assert.equal(MIN_PASSWORD_LENGTH, 8);
@@ -129,6 +130,10 @@ test('recognizes expired and invalid password recovery callbacks', () => {
     getAuthCallbackFailureMessage({ code: 'server_error' }, true),
     AUTH_MESSAGES.resetLinkExpired,
   );
+});
+
+test('starts new profiles on the free plan', () => {
+  assert.equal(DEFAULT_USER.planTier, 'free');
 });
 
 test('maps authenticated profiles to the expected student and recruiter destinations', () => {

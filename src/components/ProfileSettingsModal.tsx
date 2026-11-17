@@ -521,23 +521,21 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                       <span>Subscription & Plan Status</span>
                     </h3>
                     <p className="text-[11px] text-neutral-500 mt-0.5">
-                      Student plan pricing with 3 months free trial benefits
+                      Free ₹0 or Premium ₹49 once
                     </p>
                   </div>
                   <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-neutral-900 text-white border border-neutral-900">
-                    3 Months Free Active
+                    One-time Pricing
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-neutral-200 text-xs">
                   <div>
-                    <span className="font-bold text-neutral-900 capitalize">{user.planTier || 'Pro'} Plan</span>
+                    <span className="font-bold text-neutral-900 capitalize">{user.planTier || 'free'} Plan</span>
                     <p className="text-[11px] text-neutral-500">
-                      {user.planTier === 'basic'
-                        ? '₹0 Free Forever • Core Builder'
-                        : user.planTier === 'plus'
-                        ? 'First 3 Months Free • ₹9 / mo thereafter'
-                        : 'First 3 Months Free • ₹49 / mo thereafter (Recommended)'}
+                      {user.planTier === 'premium'
+                        ? 'Premium • ₹49 paid once'
+                        : '₹0 Free Forever • Core Builder'}
                     </p>
                   </div>
                   {onOpenPlanModal && (

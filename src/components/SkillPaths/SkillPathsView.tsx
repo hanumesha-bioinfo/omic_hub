@@ -61,7 +61,7 @@ export const SkillPathsView: React.FC<SkillPathsViewProps> = ({
   onSaveCourses,
   userRole,
   targetRole,
-  userPlan = 'pro',
+  userPlan = 'premium',
   onTriggerUpgrade,
 }) => {
   const { showToast } = useToast();
@@ -159,12 +159,12 @@ export const SkillPathsView: React.FC<SkillPathsViewProps> = ({
 
   // Handle program action click ("Enroll / Apply")
   const handleProgramAction = (prog: BioinformaticsProgram) => {
-    // Feature gate check: Direct internship applications require Pro Tier
-    if (prog.type === 'Internship' && userPlan !== 'pro') {
+    // Feature gate check: Direct internship applications require Premium
+    if (prog.type === 'Internship' && userPlan !== 'premium') {
       if (onTriggerUpgrade) {
-        onTriggerUpgrade('Direct Internship Applications', 'pro');
+        onTriggerUpgrade('Direct Internship Applications', 'premium');
       } else {
-        showToast('Direct internship applications require Pro Tier (₹49).', 'info');
+        showToast('Direct internship applications require Premium (₹49 once).', 'info');
       }
       return;
     }

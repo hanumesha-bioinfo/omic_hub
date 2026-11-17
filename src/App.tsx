@@ -60,8 +60,8 @@ function MainApp() {
     description?: string;
     targetTab?: ActiveTab;
   }>({
-    name: 'Pro Career Accelerator',
-    requiredTier: 'pro',
+    name: 'Premium Plan',
+    requiredTier: 'premium',
   });
   const [profileSettingsTab, setProfileSettingsTab] = useState<'profile' | 'settings'>('profile');
 
@@ -105,14 +105,9 @@ function MainApp() {
 
   // Handle Plan Selection from Post-Sign-In Landing Page or Modal
   const handleSelectPlan = (tier: SubscriptionPlanTier, targetTab: ActiveTab = 'builder') => {
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 90);
-
     const updatedUser: UserProfile = {
       ...user,
       planTier: tier,
-      planStatus: 'trial',
-      trialEndDate: trialEnd.toISOString(),
       hasSelectedPlan: true,
       hasCompletedResumeOnboarding: true,
     };
@@ -125,14 +120,14 @@ function MainApp() {
 
     StorageService.addActivity({
       type: 'resume',
-      title: `Activated ${tier.toUpperCase()} Plan (3 Months Free Trial)`,
-      description: `Welcome offer active! Full access granted across all computational biology tools and verified talent networks.`,
-      badge: '3-Month Free Trial',
+      title: `Selected ${tier.toUpperCase()} Plan`,
+      description: 'Your plan selection has been saved.',
+      badge: `${tier.toUpperCase()} Selected`,
     });
     setActivities(StorageService.getActivities());
 
     showToast(
-      `Plan confirmed: ${tier.toUpperCase()} (3 Months Free Trial Active)! Welcome to Omic Hub.`,
+      `Plan selected: ${tier.toUpperCase()}. Welcome to Omic Hub.`,
       'success'
     );
   };
@@ -140,7 +135,7 @@ function MainApp() {
   // Trigger Clean Subscription Plans modal whenever a user clicks Mock Interview or Full ATS Resume Scan
   const handleTriggerUpgrade = (
     featureName: string,
-    requiredTier: SubscriptionPlanTier = 'pro',
+    requiredTier: SubscriptionPlanTier = 'premium',
     description?: string,
     targetTab?: ActiveTab
   ) => {
@@ -155,14 +150,9 @@ function MainApp() {
 
   // Callback when user upgrades from FeatureGateModal
   const handleUpgradeFromGate = (tier: SubscriptionPlanTier) => {
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 90);
-
     const updatedUser: UserProfile = {
       ...user,
       planTier: tier,
-      planStatus: 'trial',
-      trialEndDate: trialEnd.toISOString(),
       hasSelectedPlan: true,
     };
 
@@ -182,12 +172,12 @@ function MainApp() {
     }
   };
 
-  // Gate Data Vault to Pro tier
+  // Gate Data Vault to Premium tier
   const handleOpenDataVault = () => {
-    if (user.planTier !== 'pro') {
+    if (user.planTier !== 'premium') {
       handleTriggerUpgrade(
         'Advanced Bioinformatics Pipelines Data Vault',
-        'pro',
+        'premium',
         'The Advanced Pipelines Data Vault offers multi-revision automated snapshots, 1-click cloud rollbacks, and tamper-proof JSON checkpoints for your bioinformatics career records.'
       );
       return;
@@ -297,14 +287,14 @@ function MainApp() {
     return <AccessDeniedScreen onLogout={handleLogout} />;
   }
 
-  // Post-Sign-In Dedicated Landing Page: Options for Basic, Plus, and Pro with First 3 Months Free
+  // Post-Sign-In Dedicated Landing Page: Free and Premium options
   if (!user.hasSelectedPlan) {
     return (
       <PlanSelectionLandingPage
         user={user}
         onSelectPlan={(tier) => handleSelectPlan(tier, 'builder')}
         onNavigateTab={() => {
-          handleSelectPlan(user.planTier || 'basic', 'builder');
+          handleSelectPlan(user.planTier || 'free', 'builder');
         }}
       />
     );
@@ -327,7 +317,7 @@ function MainApp() {
         onTriggerUpgrade={(feat, tier) =>
           handleTriggerUpgrade(
             feat,
-            tier || 'pro',
+            tier || 'premium',
             undefined,
             feat.includes('Audit') ? 'analyzer' : feat.includes('Interview') ? 'mock-interview' : undefined
           )
@@ -367,15 +357,15 @@ function MainApp() {
               setActiveTab={setActiveTab}
               onOpenResumeBuilder={() => setActiveTab('builder')}
               onOpenMockInterview={() => {
-                if (user.planTier !== 'pro') {
-                  handleTriggerUpgrade('Live AI Mock Interview Simulator', 'pro', undefined, 'mock-interview');
+                if (user.planTier !== 'premium') {
+                  handleTriggerUpgrade('Live AI Mock Interview Simulator', 'premium', undefined, 'mock-interview');
                   return;
                 }
                 setActiveTab('mock-interview');
               }}
               onOpenResumeAnalyzer={() => {
-                if (user.planTier === 'basic') {
-                  handleTriggerUpgrade('AI Resume Audit & ATS Scoring', 'plus', undefined, 'analyzer');
+                if (user.planTier === 'free') {
+                  handleTriggerUpgrade('AI Resume Audit & ATS Scoring', 'premium', undefined, 'analyzer');
                   return;
                 }
                 setActiveTab('analyzer');
@@ -420,8 +410,8 @@ function MainApp() {
               applications={applications}
               onSaveApplications={handleSaveApplications}
               onScheduleInterview={(app) => {
-                if (user.planTier !== 'pro') {
-                  handleTriggerUpgrade('Live AI Mock Interview Simulator', 'pro', undefined, 'mock-interview');
+                if (user.planTier !== 'premium') {
+                  handleTriggerUpgrade('Live AI Mock Interview Simulator', 'premium', undefined, 'mock-interview');
                   return;
                 }
                 setActiveTab('mock-interview');
@@ -436,19 +426,19 @@ function MainApp() {
               userRole={user.role}
               targetRole={user.targetRole}
               userPlan={user.planTier}
-              onTriggerUpgrade={(feat, tier) => handleTriggerUpgrade(feat, tier || 'pro')}
+              onTriggerUpgrade={(feat, tier) => handleTriggerUpgrade(feat, tier || 'premium')}
             />
           )}
 
           {activeTab === 'mock-interview' && (
-            user.planTier !== 'pro' ? (
+            user.planTier !== 'premium' ? (
               <div className="rounded-2xl bg-white border border-neutral-200 p-8 sm:p-12 text-center space-y-6 max-w-3xl mx-auto shadow-xs animate-in fade-in">
                 <div className="w-14 h-14 rounded-xl bg-neutral-100 border border-neutral-200 flex items-center justify-center mx-auto text-neutral-800">
                   <Crown className="w-6 h-6 text-neutral-800" />
                 </div>
                 <div className="space-y-2">
                   <span className="text-xs font-semibold text-neutral-600 uppercase tracking-wider bg-neutral-100 px-3 py-1 rounded-full border border-neutral-200">
-                    Pro Exclusive Feature
+                    Premium Exclusive Feature
                   </span>
                   <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
                     Technical Mock Interview Simulator
@@ -463,14 +453,14 @@ function MainApp() {
                     <span className="text-[11px] text-neutral-500">STAR rubric analysis with score breakdown</span>
                   </div>
                   <span className="text-xs font-bold font-mono text-neutral-900 bg-white px-2.5 py-1 rounded-md border border-neutral-200">
-                    Pro Tier (₹49)
+                    Premium (₹49 once)
                   </span>
                 </div>
                 <button
-                  onClick={() => handleTriggerUpgrade('Live AI Mock Interview Simulator', 'pro', undefined, 'mock-interview')}
+                  onClick={() => handleTriggerUpgrade('Live AI Mock Interview Simulator', 'premium', undefined, 'mock-interview')}
                   className="px-6 py-2.5 rounded-lg bg-neutral-900 hover:bg-black text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer"
                 >
-                  Upgrade to Pro (₹49)
+                  Upgrade to Premium (₹49 once)
                 </button>
               </div>
             ) : (
@@ -571,7 +561,7 @@ function MainApp() {
           setIsPlanModalOpen(false);
         }}
         user={user}
-        initialSelectedTier={gatedFeatureInfo.requiredTier || 'pro'}
+        initialSelectedTier={gatedFeatureInfo.requiredTier || 'premium'}
         triggeredByFeature={gatedFeatureInfo.name}
       />
 

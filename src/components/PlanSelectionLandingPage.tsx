@@ -35,11 +35,8 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
 }) => {
   const { showToast } = useToast();
 
-  // Computational token / assessment capacity dropdowns
-  const [proCapacity, setProCapacity] = useState<'10 Assessments' | '25 Assessments' | 'Unlimited'>('10 Assessments');
+  // Premium career intelligence capacity dropdown
   const [teamCapacity, setTeamCapacity] = useState<'Unlimited' | 'Institutional Cohort'>('Unlimited');
-
-  const [proDropdownOpen, setProDropdownOpen] = useState(false);
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
 
   const handleSelect = (tier: SubscriptionPlanTier, planName: string, targetTab: ActiveTab = 'builder') => {
@@ -79,7 +76,7 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
               if (onNavigateTab) {
                 onNavigateTab('builder');
               } else {
-                handleSelect('basic', 'Free', 'builder');
+                handleSelect('free', 'Free', 'builder');
               }
             }}
             className="text-xs px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold cursor-pointer transition-all shadow-sm flex items-center gap-2 border border-sky-500"
@@ -102,7 +99,7 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
       </header>
 
       {/* ============================================================== */}
-      {/* MAIN CONTENT: 4-COLUMN PRICING GRID                            */}
+      {/* MAIN CONTENT: TWO-COLUMN PRICING GRID                          */}
       {/* Plan boxes styled in clean Sky Blue as requested               */}
       {/* ============================================================== */}
       <main className="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
@@ -120,12 +117,12 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
             </span>
           </h1>
           <p className="text-xs sm:text-sm text-neutral-600 max-w-3xl">
-            Choose the plan that fits your research, career acceleration, and industry calibration targets. First 3 months free on trial activation.
+            Choose the plan that fits your research, career acceleration, and industry calibration targets.
           </p>
         </div>
 
-        {/* 4 Cards Grid - ONLY the plan boxes have the Sky Blue background */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 items-stretch">
+        {/* 2 plan cards - ONLY the plan boxes have the Sky Blue background */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
           
           {/* ============================================================ */}
           {/* CARD 1: FREE (₹0) - Sky Blue Box                             */}
@@ -144,7 +141,7 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
               {/* Action Button: "Your current plan" */}
               <button
                 type="button"
-                onClick={() => handleSelect('basic', 'Free')}
+                onClick={() => handleSelect('free', 'Free')}
                 className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-sky-100/60 text-sky-950 font-bold text-xs border border-sky-300 transition-colors cursor-pointer mb-6 shadow-2xs"
               >
                 Your current plan
@@ -191,111 +188,7 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
           </div>
 
           {/* ============================================================ */}
-          {/* CARD 2: PLUS / STARTER (₹49) - Sky Blue Box                 */}
-          {/* ============================================================ */}
-          <div className="rounded-2xl bg-[#e0f2fe] border border-sky-300 p-6 flex flex-col justify-between hover:border-sky-400 transition-colors shadow-sm relative">
-            <div>
-              {/* Header */}
-              <div className="mb-4">
-                <h3 className="text-sm font-bold text-sky-950">Plus</h3>
-                <div className="mt-2 flex items-baseline gap-1.5">
-                  <span className="text-4xl font-extrabold text-sky-950 tracking-tight">₹49</span>
-                  <div className="text-[11px] text-sky-800 leading-tight">
-                    <div>per month</div>
-                    <div className="text-sky-700 font-bold">3 Months Free</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Assessment capacity Dropdown Selector */}
-              <div className="mb-3">
-                <label className="text-[11px] font-semibold text-sky-900 block mb-1">ATS Audits & Assessments</label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setProDropdownOpen(!proDropdownOpen)}
-                    className="w-full py-2 px-3 bg-white border border-sky-300 rounded-xl text-xs text-sky-950 flex items-center justify-between cursor-pointer hover:border-sky-400"
-                  >
-                    <span className="flex items-center gap-1.5 font-medium">
-                      <span className="font-bold text-sky-700">🧬</span> {proCapacity}
-                    </span>
-                    <ChevronDown className="w-3.5 h-3.5 text-sky-700" />
-                  </button>
-
-                  {proDropdownOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-sky-200 rounded-xl shadow-lg z-20 py-1 text-xs">
-                      {(['10 Assessments', '25 Assessments', 'Unlimited'] as const).map((amt) => (
-                        <div
-                          key={amt}
-                          onClick={() => {
-                            setProCapacity(amt);
-                            setProDropdownOpen(false);
-                          }}
-                          className="px-3 py-1.5 hover:bg-sky-50 hover:text-sky-950 cursor-pointer flex items-center justify-between text-sky-900"
-                        >
-                          <span>{amt}</span>
-                          {proCapacity === amt && <Check className="w-3 h-3 text-sky-600" />}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Button: Upgrade */}
-              <button
-                type="button"
-                onClick={() => handleSelect('plus', 'Plus')}
-                className="w-full py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer mb-6"
-              >
-                Upgrade to Plus
-              </button>
-
-              {/* Feature Checklist */}
-              <div className="space-y-3 text-xs">
-                <p className="font-bold text-sky-950 text-xs">You get:</p>
-
-                <div className="flex items-start gap-2.5 text-sky-950">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-sky-950">AI STAR-Method Bullet Improver</span>{' '}
-                    <span className="text-sky-700 font-mono text-[11px]">(Quantified Impact)</span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2.5 text-sky-950">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <span>Real-Time Keyword Matching for Nextflow, GATK & Python</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-sky-950">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <span>Unlimited High-Res PDF Resume Downloads</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-sky-950">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <span>Direct Verified Recruiter Placement & In-App Easy Apply</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-sky-950">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <span>Unlimited Active Job Tracker with Kanban Pipeline</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-sky-950">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <span>Full Skill Paths & Computational Biology Modules</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-sky-950">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <span>Multi-device Real-Time Cloud Auto-Save</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-sky-950">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <span>Verified OMIC HUB Skill Badges & Certificates</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ============================================================ */}
-          {/* CARD 3: PRO / CAREER ACCELERATOR (₹149) - Sky Blue Box       */}
+          {/* CARD 2: PREMIUM (₹49 once) - Sky Blue Box                   */}
           {/* ============================================================ */}
           <div className="rounded-2xl bg-[#bae6fd] border-2 border-sky-400 p-6 flex flex-col justify-between hover:border-sky-500 transition-all relative shadow-md">
             <div>
@@ -304,7 +197,7 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-extrabold text-sky-950 flex items-center gap-1.5">
                     <Crown className="w-4 h-4 text-sky-700" />
-                    <span>Pro</span>
+                    <span>Premium</span>
                   </h3>
                   <span className="px-2.5 py-0.5 rounded-full bg-sky-700 text-white font-black text-[10px] uppercase tracking-wider shadow-xs">
                     POPULAR
@@ -312,10 +205,10 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
                 </div>
 
                 <div className="mt-2 flex items-baseline gap-1.5">
-                  <span className="text-4xl font-extrabold text-sky-950 tracking-tight">₹149</span>
+                  <span className="text-4xl font-extrabold text-sky-950 tracking-tight">₹49</span>
                   <div className="text-[11px] text-sky-900 leading-tight">
-                    <div>per month</div>
-                    <div className="text-sky-800 font-bold">First 3 Months Free</div>
+                    <div>one-time</div>
+                    <div className="text-sky-800 font-bold">Pay once, keep access</div>
                   </div>
                 </div>
               </div>
@@ -355,18 +248,18 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
                 </div>
               </div>
 
-              {/* Action Button: Upgrade to Pro */}
+              {/* Action Button: Choose Premium */}
               <button
                 type="button"
-                onClick={() => handleSelect('pro', 'Pro')}
+                onClick={() => handleSelect('premium', 'Premium')}
                 className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-black text-white font-bold text-xs shadow-sm transition-all cursor-pointer mb-6"
               >
-                Upgrade to Pro (3 Months Free)
+                Choose Premium (₹49 once)
               </button>
 
               {/* Feature Checklist */}
               <div className="space-y-3 text-xs">
-                <p className="font-bold text-sky-950 text-xs">Everything in Plus, plus:</p>
+                <p className="font-bold text-sky-950 text-xs">Included with Premium:</p>
 
                 <div className="flex items-start gap-2.5 text-sky-950">
                   <Check className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" />
@@ -395,66 +288,6 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
               </div>
             </div>
           </div>
-
-          {/* ============================================================ */}
-          {/* CARD 4: ENTERPRISE (Custom) - Sky Blue Box                   */}
-          {/* ============================================================ */}
-          <div className="rounded-2xl bg-sky-50 border border-sky-200 p-6 flex flex-col justify-between hover:border-sky-300 transition-colors shadow-xs">
-            <div>
-              {/* Header */}
-              <div className="mb-4">
-                <h3 className="text-sm font-bold text-sky-950">Enterprise</h3>
-                <div className="mt-2 flex items-baseline">
-                  <span className="text-4xl font-extrabold text-sky-950 tracking-tight">Custom</span>
-                </div>
-              </div>
-
-              {/* Sub-description */}
-              <p className="text-xs text-sky-900 leading-relaxed mb-4 min-h-[40px]">
-                For universities, research institutes, and biotech hiring teams needing cohort-wide benchmarks and direct placement.
-              </p>
-
-              {/* Action Button: "See a demo" */}
-              <button
-                type="button"
-                onClick={() => handleSelect('pro', 'Enterprise')}
-                className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-sky-100/60 text-sky-950 font-bold text-xs border border-sky-300 transition-colors cursor-pointer mb-6 shadow-2xs"
-              >
-                Request Lab Demo
-              </button>
-
-              {/* Feature Checklist */}
-              <div className="space-y-3 text-xs">
-                <p className="font-bold text-sky-950 text-xs">Everything in Pro, plus:</p>
-
-                <div className="flex items-start gap-2.5 text-sky-900">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <span>University Multi-Seat Campus Licenses</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-sky-900">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <span>Custom Bioinformatics Assessment Rubrics</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-sky-900">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <span>Dedicated Campus Placement Coordinator</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-sky-900">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <span>Direct Recruiter Candidate Pipeline & Shortlisting</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-sky-900">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <span>Institutional Analytics & Cohort Benchmarks</span>
-                </div>
-                <div className="flex items-start gap-2.5 text-sky-900">
-                  <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                  <span>Single Sign-On (SSO) & Academic Identity Sync</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
         </div>
 
       </main>

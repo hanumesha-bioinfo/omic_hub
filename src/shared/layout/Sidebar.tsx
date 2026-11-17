@@ -64,8 +64,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (setIsOpen) setIsOpen(false);
     if (setMobileOpen) setMobileOpen(false);
   };
-  const isAuditLocked = user.planTier === 'basic';
-  const isInterviewLocked = user.planTier !== 'pro';
+  const isAuditLocked = user.planTier === 'free';
+  const isInterviewLocked = user.planTier !== 'premium';
 
   const navItems: { id: ActiveTab; label: string; icon: React.ReactNode; badge?: string; badgeColor?: string; locked?: boolean }[] = [
     {
@@ -100,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'mock-interview',
       label: 'Interview',
       icon: <Mic className="w-4 h-4" />,
-      badge: isInterviewLocked ? '₹49 Pro' : 'Live AI',
+      badge: isInterviewLocked ? '₹49 Premium' : 'Live AI',
       badgeColor: isInterviewLocked
         ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
         : 'bg-amber-500/15 text-amber-300 border-amber-500/25',
@@ -125,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const handleNavClick = (tab: ActiveTab) => {
     if (tab === 'analyzer' && isAuditLocked) {
       if (onTriggerUpgrade) {
-        onTriggerUpgrade('AI Resume Audit & ATS Scoring', 'plus');
+        onTriggerUpgrade('AI Resume Audit & ATS Scoring', 'premium');
       } else if (onOpenPlanModal) {
         onOpenPlanModal();
       }
@@ -135,7 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     if (tab === 'mock-interview' && isInterviewLocked) {
       if (onTriggerUpgrade) {
-        onTriggerUpgrade('Live AI Mock Interview Simulator', 'pro');
+        onTriggerUpgrade('Live AI Mock Interview Simulator', 'premium');
       } else if (onOpenPlanModal) {
         onOpenPlanModal();
       }
@@ -324,14 +324,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="flex items-center justify-between text-xs mb-1">
                 <span className="font-bold text-neutral-900 flex items-center gap-1.5">
                   <Crown className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="capitalize">{user.planTier || 'Pro'} Plan</span>
+                  <span className="capitalize">{user.planTier || 'free'} Plan</span>
                 </span>
                 <span className="text-[10px] font-semibold text-emerald-700 px-1.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200">
-                  Trial Active
+                  {user.planTier === 'premium' ? 'Premium' : 'Free'}
                 </span>
               </div>
               <p className="text-[11px] text-neutral-500 leading-tight mb-2.5">
-                First 3 Months Free &bull; All features unlocked
+                Free ₹0 or Premium ₹49 once
               </p>
               <button
                 type="button"
@@ -341,7 +341,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }}
                 className="w-full py-1.5 px-2 rounded-lg bg-white hover:bg-neutral-100 text-neutral-800 font-semibold text-[11px] border border-neutral-300 transition-colors flex items-center justify-center gap-1 cursor-pointer"
               >
-                <span>Compare Plans (₹0 / ₹9 / ₹49)</span>
+                <span>Compare Plans (₹0 / ₹49)</span>
                 <ChevronRight className="w-3 h-3 text-neutral-400" />
               </button>
             </div>

@@ -35,25 +35,25 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   onClose,
   onUpgrade,
   user,
-  initialSelectedTier = 'pro',
+  initialSelectedTier = 'premium',
   triggeredByFeature,
 }) => {
   const { showToast } = useToast();
   const [selectedTier, setSelectedTier] = useState<SubscriptionPlanTier>(initialSelectedTier);
-  
+
   // Checkout / Razorpay UPI Gateway UI state
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [checkoutTier, setCheckoutTier] = useState<SubscriptionPlanTier>('pro');
+  const [checkoutTier, setCheckoutTier] = useState<SubscriptionPlanTier>('premium');
   const [paymentMethod, setPaymentMethod] = useState<'upi_qr' | 'upi_vpa' | 'card'>('upi_qr');
-  const [vpaId, setVpaId] = useState('student@okhdfcbank');
+  const [vpaId, setVpaId] = useState('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   if (!isOpen) return null;
 
   const handleOpenCheckout = (tier: SubscriptionPlanTier) => {
-    if (tier === 'basic') {
-      onUpgrade('basic');
+    if (tier === 'free') {
+      onUpgrade('free');
       showToast('Switched to Free Tier (₹0).', 'info');
       onClose();
       return;
@@ -86,8 +86,8 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
     }, 1500);
   };
 
-  const checkoutPrice = checkoutTier === 'plus' ? '9' : '49';
-  const checkoutPlanName = checkoutTier === 'plus' ? 'Basic Plus (3 Months Trial)' : 'Pro Career Accelerator';
+  const checkoutPrice = '49';
+  const checkoutPlanName = 'Premium Plan (one-time ₹49)';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
@@ -126,26 +126,26 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
               </p>
             </div>
 
-            {/* Launch Trial Badge */}
+            {/* One-time pricing badge */}
             <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-left shrink-0 sm:max-w-xs shadow-2xs">
               <div className="flex items-center gap-1.5 text-sky-950 font-bold text-xs">
                 <Zap className="w-3.5 h-3.5 text-sky-700" />
-                <span>Special Welcome Offer</span>
+                <span>One-time Payment</span>
               </div>
               <p className="text-[11px] text-sky-800 mt-0.5">
-                First 3 Months Free on Trial Activation. ₹0 charged today!
+                Premium is ₹49 once. Pay a single time and keep access.
               </p>
             </div>
           </div>
         </div>
 
-        {/* 3 Clear Cards Grid in Sky Blue */}
-        <div className="p-6 sm:p-8 pt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-          
+        {/* Two clear plan cards in sky blue */}
+        <div className="p-6 sm:p-8 pt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+
           {/* CARD 1: Free (₹0) - Sky Blue Box */}
           <div
             className={`relative rounded-3xl p-6 flex flex-col justify-between border transition-all duration-300 bg-sky-50 text-sky-950 ${
-              selectedTier === 'basic'
+              selectedTier === 'free'
                 ? 'border-sky-400 shadow-md ring-1 ring-sky-400'
                 : 'border-sky-200 hover:border-sky-300'
             }`}
@@ -201,84 +201,17 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 
             <button
               type="button"
-              onClick={() => handleOpenCheckout('basic')}
+              onClick={() => handleOpenCheckout('free')}
               className="w-full py-3 px-4 rounded-2xl font-bold text-xs bg-white hover:bg-sky-100 text-sky-950 border border-sky-300 transition-all cursor-pointer shadow-2xs"
             >
-              {user.planTier === 'basic' ? 'Current Active Plan' : 'Continue with Free (₹0)'}
+              {user.planTier === 'free' ? 'Current Plan' : 'Continue with Free (₹0)'}
             </button>
           </div>
 
-          {/* CARD 2: Basic Plus (₹9 for 3 months trial) - Sky Blue Box */}
-          <div
-            className={`relative rounded-3xl p-6 flex flex-col justify-between border transition-all duration-300 bg-[#e0f2fe] text-sky-950 ${
-              selectedTier === 'plus'
-                ? 'border-sky-400 shadow-lg ring-2 ring-sky-400/40'
-                : 'border-sky-300 hover:border-sky-400'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-sky-800">Career Builder</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-white text-sky-900 border border-sky-300">
-                  3 Mo Free Trial
-                </span>
-              </div>
-
-              <h3 className="text-xl font-bold text-sky-950 mb-1">Basic Plus</h3>
-              <p className="text-xs text-sky-800 mb-5 min-h-[32px]">
-                Full ATS Resume Audit & direct job links with STAR metric enhancements.
-              </p>
-
-              {/* Price */}
-              <div className="p-3.5 rounded-2xl bg-white border border-sky-300 mb-5">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-extrabold text-sky-950">₹0</span>
-                  <span className="text-xs text-sky-700 font-bold">First 3 Months Free</span>
-                </div>
-                <div className="flex items-center justify-between mt-1 text-[11px] text-sky-800">
-                  <span>Then:</span>
-                  <span className="text-sky-950 font-bold">₹9 / month</span>
-                </div>
-              </div>
-
-              {/* Features List */}
-              <div className="space-y-2.5 text-xs text-sky-950 mb-6">
-                <div className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" />
-                  <span><strong>Full ATS Resume Audit</strong> & keyword optimizer</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" />
-                  <span><strong>STAR Method Rewrites</strong> for Google XYZ metrics</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" />
-                  <span><strong>Direct Job Links</strong> & opportunity tracker</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" />
-                  <span>3 ATS Templates (Minimal, Modern, Executive)</span>
-                </div>
-                <div className="flex items-start gap-2 text-neutral-400">
-                  <X className="w-4 h-4 text-neutral-400 shrink-0 mt-0.5" />
-                  <span>Live AI Mock Interview Simulator</span>
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handleOpenCheckout('plus')}
-              className="w-full py-3 px-4 rounded-2xl font-bold text-xs bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-all cursor-pointer"
-            >
-              Select Basic Plus (₹9)
-            </button>
-          </div>
-
-          {/* CARD 3: Pro (₹49) - Sky Blue Box */}
+          {/* CARD 2: Premium (₹49 once) - Sky Blue Box */}
           <div
             className={`relative rounded-3xl p-6 flex flex-col justify-between border-2 transition-all duration-300 bg-[#bae6fd] text-sky-950 ${
-              selectedTier === 'pro'
+              selectedTier === 'premium'
                 ? 'border-sky-500 shadow-xl ring-2 ring-sky-400/50'
                 : 'border-sky-400 hover:border-sky-500'
             }`}
@@ -292,11 +225,11 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
               <div className="flex items-center justify-between mb-3 mt-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-sky-900">Ultimate Suite</span>
                 <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-white text-sky-900 border border-sky-300">
-                  3 Mo Free Trial
+                  One-time payment
                 </span>
               </div>
 
-              <h3 className="text-xl font-bold text-sky-950 mb-1">Pro Tier</h3>
+              <h3 className="text-xl font-bold text-sky-950 mb-1">Premium Tier</h3>
               <p className="text-xs text-sky-800 mb-5 min-h-[32px]">
                 AI Mock Interview, Data Vault, and priority application tracking.
               </p>
@@ -304,13 +237,12 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
               {/* Price */}
               <div className="p-3.5 rounded-2xl bg-white border border-sky-300 mb-5">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-extrabold text-sky-950">₹0</span>
-                  <span className="text-xs text-sky-800 font-bold">First 3 Months Free</span>
+                  <span className="text-3xl font-extrabold text-sky-950">₹49</span>
+                  <span className="text-xs text-sky-800 font-bold">one-time</span>
                 </div>
-                <div className="flex items-center justify-between mt-1 text-[11px] text-sky-900">
-                  <span>Then:</span>
-                  <span className="text-sky-950 font-bold">₹49 / month</span>
-                </div>
+                <p className="text-[10px] text-sky-700 font-semibold mt-1">
+                  Pay once. No monthly charges.
+                </p>
               </div>
 
               {/* Features List */}
@@ -340,11 +272,11 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 
             <button
               type="button"
-              onClick={() => handleOpenCheckout('pro')}
+              onClick={() => handleOpenCheckout('premium')}
               className="w-full py-3.5 px-4 rounded-2xl font-extrabold text-xs bg-neutral-900 hover:bg-black text-white shadow-md transition-all hover:scale-102 active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Crown className="w-4 h-4 text-amber-400" />
-              <span>Upgrade Now (₹49)</span>
+              <span>Choose Premium (₹49 once)</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -354,10 +286,10 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         <div className="p-4 px-6 sm:px-8 border-t border-neutral-200 bg-neutral-50 flex items-center justify-between text-xs text-neutral-600">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Instant activation &bull; Cancel anytime with 1-click &bull; Powered by UPI / Razorpay</span>
+            <span>One-time ₹49 payment &bull; Pay securely &bull; Powered by Razorpay</span>
           </div>
           <span className="text-[11px] text-neutral-500 hidden sm:inline">
-            OMIC HUB Verified Billing
+            OMIC HUB Plans
           </span>
         </div>
       </div>
@@ -382,7 +314,6 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="font-extrabold text-sm tracking-tight">Razorpay</span>
-                    <span className="text-[10px] font-bold bg-white/20 px-1.5 py-0.2 rounded">TEST GATEWAY</span>
                   </div>
                   <p className="text-[11px] text-blue-200">Omic Hub Career Intelligence</p>
                 </div>
@@ -403,8 +334,8 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                   <span className="font-bold text-white">{checkoutPlanName}</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-emerald-400 font-bold block text-[11px]">3 Months Free</span>
-                  <span className="text-slate-400 text-[10px]">Then ₹{checkoutPrice}/mo</span>
+                  <span className="text-emerald-400 font-bold block text-[11px]">One-time payment</span>
+                  <span className="text-slate-400 text-[10px]">₹{checkoutPrice} once</span>
                 </div>
               </div>
 
@@ -505,7 +436,7 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                       type="text"
                       value={vpaId}
                       onChange={(e) => setVpaId(e.target.value)}
-                      placeholder="username@okhdfcbank"
+                      placeholder="name@bank"
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">
@@ -526,7 +457,7 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                     <input
                       type="text"
                       readOnly
-                      value="4111 &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; 1111 (Test Card)"
+                      placeholder="Card number"
                       className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 font-mono"
                     />
                   </div>
@@ -536,7 +467,7 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                       <input
                         type="text"
                         readOnly
-                        value="12/28"
+                        placeholder="MM/YY"
                         className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 font-mono"
                       />
                     </div>
@@ -545,7 +476,7 @@ export const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                       <input
                         type="text"
                         readOnly
-                        value="888"
+                        placeholder="CVV"
                         className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 font-mono"
                       />
                     </div>
