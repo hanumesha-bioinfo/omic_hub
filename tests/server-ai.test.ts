@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import express from 'express';
 import test from 'node:test';
 import { asyncHandler } from '../server/lib/asyncHandler';
@@ -162,4 +164,12 @@ test('non-POST methods still return 405 after auth', async () => {
     const response = await fetch(`${base}/api/ai/resume-improve`);
     assert.equal(response.status, 405);
   });
+});
+
+test('bind host is env-configurable with a safe default', () => {
+  const config = readFileSync(path.resolve('server/config/index.ts'), 'utf8');
+  const index = readFileSync(path.resolve('server/index.ts'), 'utf8');
+  assert.match(config, /HOST\s*[:=]/);
+  assert.match(config, /'0\.0\.0\.0'/);
+  assert.match(index, /app\.listen\(\s*PORT\s*,\s*HOST/);
 });

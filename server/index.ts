@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { createApp } from './app';
-import { DIST_DIR, PORT } from './config';
+import { DIST_DIR, HOST, PORT } from './config';
 
 async function startServer() {
   const app = createApp();
@@ -20,8 +20,8 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`TalentForge AI server running on http://0.0.0.0:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`TalentForge AI server running on http://${HOST}:${PORT}`);
   });
 }
 
