@@ -13,11 +13,13 @@ import {
   createPlanStore,
   planStore,
   type CreateOrderRow,
+  type Entitlement,
   type PlanOrder,
   type PlanStore,
   type SupabaseTableClient,
   type UpsertEntitlementRow,
 } from '../server/lib/serverAdmin';
+import { accountRouter, createAccountRouter } from '../server/routes/account';
 import {
   createOrderRouter,
   createWebhookHandler,
@@ -953,4 +955,151 @@ test('createWebhookHandler is exported as a standalone RequestHandler', () => {
   const { store } = fakeWebhookStore();
   const handler = createWebhookHandler({ store, secret: WEBHOOK_SECRET });
   assert.equal(typeof handler, 'function');
+});
+
+/** Fake plan store whose entitlement lookup can return a row or throw. */
+function fakeAccountStore(options: {
+  entitlement?: Entitlement | null;
+  getEntitlementError?: Error;
+} = {}) {
+  const getEntitlementCalls: string[] = [];
+  const store: PlanStore = {
+    async createOrder() {},
+    async getOrder() {
+      return null;
+    },
+    async markOrderPaid() {},
+    async getEntitlement(userId) {
+      getEntitlementCalls.push(userId);
+      if (options.getEntitlementError) throw options.getEntitlementError;
+      return options.entitlement ?? null;
+    },
+    async upsertEntitlement() {},
+  };
+  return { store, getEntitlementCalls };
+}
+
+/** Boots the account router at /api/account on an ephemeral loopback port. */
+async function withAccountRouter(
+  router: Router,
+  run: (
+    get: (query?: string) => Promise<{ status: number; body: unknown }>,
+  ) => Promise<void>,
+) {
+  const app = express();
+  app.use(express.json());
+  app.use('/api/account', router);
+  const server = app.listen(0, '127.0.0.1');
+  try {
+    await new Promise<void>((resolve) => server.once('listening', resolve));
+    const address = server.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('expected an ephemeral loopback TCP address');
+    }
+    const url = `http://127.0.0.1:${address.port}/api/account/plan`;
+    await run(async (query = '') => {
+      const response = await fetch(`${url}${query}`);
+      return { status: response.status, body: await response.json() };
+    });
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+}
+
+test('accountRouter is exported and import-safe with empty env', () => {
+  assert.equal(typeof accountRouter, 'function');
+});
+
+test('GET /api/account/plan returns 401 without authentication', async () => {
+  const { store, getEntitlementCalls } = fakeAccountStore();
+  const router = createAccountRouter({ requireAuth: denyAuth, store });
+
+  await withAccountRouter(router, async (get) => {
+    const { status, body } = await get();
+    assert.equal(status, 401);
+    assert.deepEqual(body, { error: 'Unauthorized' });
+  });
+  assert.deepEqual(getEntitlementCalls, []);
+});
+
+test('GET /api/account/plan reports an inactive plan when no entitlement exists', async () => {
+  const { store, getEntitlementCalls } = fakeAccountStore();
+  const router = createAccountRouter({ requireAuth: allowAuth, store });
+
+  await withAccountRouter(router, async (get) => {
+    const { status, body } = await get();
+    assert.equal(status, 200);
+    assert.deepEqual(body, { tier: null, active: false });
+  });
+  assert.deepEqual(getEntitlementCalls, ['uuid-1']);
+});
+
+test('GET /api/account/plan reports premium active for an active premium entitlement', async () => {
+  const { store, getEntitlementCalls } = fakeAccountStore({
+    entitlement: { tier: 'premium', status: 'active' },
+  });
+  const router = createAccountRouter({ requireAuth: allowAuth, store });
+
+  await withAccountRouter(router, async (get) => {
+    const { status, body } = await get();
+    assert.equal(status, 200);
+    assert.deepEqual(body, { tier: 'premium', active: true });
+  });
+  assert.deepEqual(getEntitlementCalls, ['uuid-1']);
+});
+
+test('GET /api/account/plan treats a revoked entitlement as inactive', async () => {
+  const { store } = fakeAccountStore({
+    entitlement: { tier: 'premium', status: 'revoked' },
+  });
+  const router = createAccountRouter({ requireAuth: allowAuth, store });
+
+  await withAccountRouter(router, async (get) => {
+    const { status, body } = await get();
+    assert.equal(status, 200);
+    assert.deepEqual(body, { tier: null, active: false });
+  });
+});
+
+test('GET /api/account/plan returns 500 when the entitlement lookup fails', async () => {
+  const { store, getEntitlementCalls } = fakeAccountStore({
+    getEntitlementError: new Error('database down'),
+  });
+  const router = createAccountRouter({ requireAuth: allowAuth, store });
+
+  await withAccountRouter(router, async (get) => {
+    const { status, body } = await get();
+    assert.equal(status, 500);
+    assert.deepEqual(body, { error: 'Unable to load plan' });
+  });
+  assert.deepEqual(getEntitlementCalls, ['uuid-1']);
+});
+
+test('GET /api/account/plan ignores a client-supplied userId in the query string', async () => {
+  const { store, getEntitlementCalls } = fakeAccountStore({
+    entitlement: { tier: 'premium', status: 'active' },
+  });
+  const router = createAccountRouter({ requireAuth: allowAuth, store });
+
+  await withAccountRouter(router, async (get) => {
+    const { status, body } = await get('?userId=attacker-uuid');
+    assert.equal(status, 200);
+    assert.deepEqual(body, { tier: 'premium', active: true });
+  });
+  assert.deepEqual(getEntitlementCalls, ['uuid-1']);
+});
+
+test('GET /api/account/plan never exposes a non-premium tier as active', async () => {
+  const { store } = fakeAccountStore({
+    entitlement: { tier: 'plus', status: 'active' },
+  });
+  const router = createAccountRouter({ requireAuth: allowAuth, store });
+
+  await withAccountRouter(router, async (get) => {
+    const { status, body } = await get();
+    assert.equal(status, 200);
+    assert.deepEqual(body, { tier: null, active: false });
+  });
 });
