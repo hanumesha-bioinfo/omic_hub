@@ -8,9 +8,6 @@ import {
   stripAuthCallbackParams,
 } from '../src/features/auth/callback';
 import {
-  isDemoRecruiterProfile,
-} from '../src/features/auth/demoRecruiter';
-import {
   AUTH_MESSAGES,
   getAuthErrorMessage,
 } from '../src/features/auth/messages';
@@ -21,7 +18,6 @@ import {
   mapProfileToUserProfile,
   type ProfileRecord,
 } from '../src/features/auth/profileData';
-import type { UserProfile } from '../src/types';
 
 function makeAuthUser(overrides: Partial<AuthUser> = {}): AuthUser {
   return {
@@ -333,22 +329,3 @@ test('does not block authentication when the profile read fails', async () => {
   assert.equal(profile.full_name, 'Metadata Name');
 });
 
-test('recognizes only demo recruiter profiles as demo sessions', () => {
-  const demo = {
-    id: 'rec_1700000000000',
-    userType: 'recruiter',
-  } as UserProfile;
-  const student = {
-    id: 'rec_1700000000000',
-    userType: 'student',
-  } as UserProfile;
-  const realRecruiter = {
-    id: '8f2d3e40-0000-4000-8000-000000000000',
-    userType: 'recruiter',
-  } as UserProfile;
-
-  assert.equal(isDemoRecruiterProfile(demo), true);
-  assert.equal(isDemoRecruiterProfile(student), false);
-  assert.equal(isDemoRecruiterProfile(realRecruiter), false);
-  assert.equal(isDemoRecruiterProfile(null), false);
-});

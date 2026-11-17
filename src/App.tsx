@@ -8,7 +8,6 @@ import {
   canSeeStudentWorkspace,
   useAuth,
 } from './features/auth';
-import type { LoginOptions } from './features/auth';
 import { Sidebar } from './shared/layout/Sidebar';
 import type { ActiveTab } from './app/navigation';
 import { TopHeader } from './shared/layout/TopHeader';
@@ -41,7 +40,6 @@ function MainApp() {
     status,
     user,
     setUser,
-    login,
     logout,
     completePasswordRecovery,
   } = useAuth();
@@ -104,20 +102,6 @@ function MainApp() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  // Synchronize Auth on Login
-  const handleLoginSuccess = (
-    authenticatedUser: UserProfile,
-    options?: LoginOptions,
-  ) => {
-    login(authenticatedUser, options);
-
-    if (authenticatedUser.hasSelectedPlan) {
-      setActiveTab('dashboard');
-    }
-
-    setActivities(StorageService.getActivities());
-  };
 
   // Handle Plan Selection from Post-Sign-In Landing Page or Modal
   const handleSelectPlan = (tier: SubscriptionPlanTier, targetTab: ActiveTab = 'builder') => {
@@ -293,7 +277,7 @@ function MainApp() {
 
   // If not authenticated, render the SignInPage
   if (status === 'unauthenticated') {
-    return <SignInPage onLoginSuccess={handleLoginSuccess} />;
+    return <SignInPage />;
   }
 
   // STRICT ACCESS CONTROL FOR RECRUITERS:

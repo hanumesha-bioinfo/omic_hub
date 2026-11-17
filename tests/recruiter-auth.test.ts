@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   buildRecruiterSignUpOptions,
@@ -128,4 +128,35 @@ test('student sign-up keeps user_type student in signUpStudent source', () => {
   );
 
   assert.match(source, /user_type:\s*'student'/);
+});
+
+test('demo recruiter fallback is fully removed', () => {
+  assert.equal(existsSync('src/features/auth/demoRecruiter.ts'), false);
+
+  for (const file of [
+    'src/features/auth/components/SignInPage.tsx',
+    'src/features/auth/AuthProvider.tsx',
+    'src/App.tsx',
+    'src/features/auth/messages.ts',
+    'src/features/auth/authClient.ts',
+    'tests/auth.test.ts',
+  ]) {
+    const source = readFileSync(file, 'utf8');
+    assert.equal(
+      /demoRecruiter|DEMO_RECRUITER|buildDemoRecruiterProfile|rec_|onLoginSuccess|\{ demo: true \}/.test(
+        source,
+      ),
+      false,
+      file,
+    );
+  }
+});
+
+test('recruiter form uses real Supabase auth', () => {
+  const source = readFileSync(
+    'src/features/auth/components/SignInPage.tsx',
+    'utf8',
+  );
+  assert.match(source, /signUpRecruiter/);
+  assert.match(source, /signInWithPassword/);
 });

@@ -27,12 +27,6 @@ import {
   parseAuthCallbackError,
 } from './callback';
 import {
-  clearDemoRecruiterSession,
-  getDemoRecruiterSession,
-  isDemoRecruiterProfile,
-  markDemoRecruiterSession,
-} from './demoRecruiter';
-import {
   AUTH_MESSAGES,
   getAuthCallbackFailureMessage,
   getAuthErrorMessage,
@@ -49,17 +43,13 @@ export type AuthStatus =
   | 'unauthenticated'
   | 'password-recovery';
 
-export interface LoginOptions {
-  demo?: boolean;
-}
-
 export interface AuthContextValue {
   status: AuthStatus;
   isAuthenticated: boolean;
   isPasswordRecovery: boolean;
   user: UserProfile;
   setUser: React.Dispatch<React.SetStateAction<UserProfile>>;
-  login: (user: UserProfile, options?: LoginOptions) => void;
+  login: (authenticatedUser: UserProfile) => void;
   logout: () => Promise<void>;
   completePasswordRecovery: () => Promise<void>;
 }
@@ -67,7 +57,6 @@ export interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 interface ApplyUserOptions {
-  demo?: boolean;
   recordActivity?: boolean;
   announce?: boolean;
 }
@@ -99,12 +88,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       StorageService.saveUser(authenticatedUser);
       StorageService.setAuthenticated(true);
 
-      if (options.demo) {
-        markDemoRecruiterSession(authenticatedUser);
-      } else {
-        clearDemoRecruiterSession();
-      }
-
       if (options.recordActivity) {
         StorageService.addActivity({
           type: 'resume',
@@ -129,9 +112,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const login = useCallback(
-    (authenticatedUser: UserProfile, options: LoginOptions = {}) => {
+    (authenticatedUser: UserProfile) => {
       applyUser(authenticatedUser, {
-        demo: options.demo,
         recordActivity: true,
         announce: true,
       });
@@ -152,7 +134,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error('Supabase sign-out error:', remoteError);
     }
 
-    clearDemoRecruiterSession();
     clearAuthCallbackParams();
     passwordRecoveryRef.current = false;
     processedAuthUserId.current = null;
@@ -172,7 +153,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error('Sign-out after password recovery failed:', error);
     }
 
-    clearDemoRecruiterSession();
     clearAuthCallbackParams();
     passwordRecoveryRef.current = false;
     processedAuthUserId.current = null;
@@ -210,24 +190,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       initializationResolved = true;
-
-      const storedDemo = getDemoRecruiterSession();
-      const legacyDemo =
-        !storedDemo && StorageService.isAuthenticated()
-          ? StorageService.getUser()
-          : null;
-      const demoProfile =
-        storedDemo ??
-        (isDemoRecruiterProfile(legacyDemo) ? legacyDemo : null);
-
-      if (demoProfile) {
-        applyUser(demoProfile, {
-          demo: true,
-          recordActivity: false,
-          announce: false,
-        });
-        return;
-      }
 
       setUser(DEFAULT_USER);
       setIsAuthenticated(false);
@@ -308,7 +270,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           notifyCallbackFailure(AUTH_MESSAGES.authCallbackFailed);
         }
 
-        clearDemoRecruiterSession();
         clearAuthCallbackParams();
         passwordRecoveryRef.current = false;
         processedAuthUserId.current = null;

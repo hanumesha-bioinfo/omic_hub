@@ -13,6 +13,7 @@ export const AUTH_MESSAGES = {
   passwordRequired: 'Please enter your password.',
   shortStudentPassword: PASSWORD_MIN_LENGTH_MESSAGE,
   missingFullName: 'Please enter your full name.',
+  missingCompanyName: 'Please enter your company name.',
   googleSignInFailed: 'Google sign-in failed. Please try again.',
   resetEmailSent: 'If an account exists for that email, a password-reset link will be sent.',
   resetRequestFailed: 'Could not request a password reset. Please try again.',
@@ -23,7 +24,7 @@ export const AUTH_MESSAGES = {
     'If you already have an Omic Hub account, sign in or reset your password. Otherwise, check your inbox for a confirmation email.',
   signingIn: 'Signing in to Omic Hub...',
   studentAuthFailed: 'Student authentication failed. Please try again.',
-  welcomeRecruiter: (company: string) => `Welcome to Recruiter Workspace, ${company}!`,
+  recruiterAuthFailed: 'Recruiter authentication failed. Please try again.',
   welcomeUser: (name: string) => `Welcome to Omic Hub, ${name}!`,
   profileLoadFailed: 'Could not load your Omic Hub profile.',
   signOutFailed: 'Could not sign out. Please try again.',
@@ -34,7 +35,6 @@ export const AUTH_MESSAGES = {
     'Your reset session is missing or expired. Please request a new reset email.',
   passwordUpdated: 'Password updated successfully.',
   passwordUpdateFailed: 'Could not update your password. Please try again.',
-  recruiterDemoFailed: 'Could not open the recruiter workspace. Please try again.',
   invalidCredentials:
     'Incorrect email or password. If you created your account with Google, use "Continue with Google". You can also reset your password.',
   emailNotConfirmed:

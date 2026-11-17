@@ -9,16 +9,14 @@ import {
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
-import type { UserProfile } from '../../../types';
 import { useToast } from '../../../shared/ui/Toast';
 import {
   requestPasswordReset,
   signInWithGoogle,
   signInWithPassword,
+  signUpRecruiter,
   signUpStudent,
 } from '../authClient';
-import { buildDemoRecruiterProfile, DEMO_RECRUITER_DELAY_MS } from '../demoRecruiter';
-import type { LoginOptions } from '../AuthProvider';
 import { AUTH_MESSAGES } from '../messages';
 import { useAuthAction } from '../useAuthAction';
 import {
@@ -27,18 +25,15 @@ import {
   normalizeEmail,
 } from '../validation';
 
-interface SignInPageProps {
-  onLoginSuccess: (user: UserProfile, options?: LoginOptions) => void;
-}
-
 interface SignUpNotice {
   title: string;
   message: string;
 }
 
-export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
+export const SignInPage: React.FC = () => {
   const { showToast } = useToast();
   const studentAction = useAuthAction();
+  const recruiterAction = useAuthAction();
   const resetAction = useAuthAction();
   const loading = studentAction.isLoading;
   const resetLoading = resetAction.isLoading;
@@ -165,28 +160,81 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
   };
 
   // Recruiter Form Submit
-  const handleRecruiterSubmit = (e?: React.FormEvent) => {
-    if (e && e.preventDefault) e.preventDefault();
+  const handleRecruiterSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
 
-    const comp = companyName.trim() || 'Genomics BioLabs';
-    const em = recruiterEmail.trim() || 'talent@genomicsbiolabs.com';
+    const company = companyName.trim();
+    const email = normalizeEmail(recruiterEmail);
+    const isRegistration = isRegisterMode;
 
-    void studentAction.run(
-      () =>
-        new Promise<void>((resolve) => {
-          setTimeout(resolve, DEMO_RECRUITER_DELAY_MS);
-        }),
+    setSignUpNotice(null);
+
+    if (!isValidEmail(email)) {
+      showToast(
+        isRegistration
+          ? AUTH_MESSAGES.invalidEmail
+          : AUTH_MESSAGES.invalidLoginEmail,
+        'error',
+      );
+      return;
+    }
+
+    if (isRegistration) {
+      if (!company) {
+        showToast(AUTH_MESSAGES.missingCompanyName, 'error');
+        return;
+      }
+
+      if (!isPasswordLongEnough(recruiterPassword)) {
+        showToast(AUTH_MESSAGES.passwordTooShort, 'error');
+        return;
+      }
+
+      const result = await recruiterAction.run(
+        () =>
+          signUpRecruiter({
+            companyName: company,
+            email,
+            password: recruiterPassword,
+          }),
+        {
+          fallbackError: AUTH_MESSAGES.recruiterAuthFailed,
+          errorLogLabel: 'Recruiter authentication error:',
+        },
+      );
+
+      if (!result) return;
+
+      if (result.hasSession) {
+        showToast(AUTH_MESSAGES.accountCreated, 'success');
+        return;
+      }
+
+      setSignUpNotice({
+        title: result.possibleDuplicateEmail ? 'Next step' : 'Confirm your email',
+        message: result.possibleDuplicateEmail
+          ? AUTH_MESSAGES.signUpDuplicateEmail
+          : AUTH_MESSAGES.accountCreatedConfirmEmail,
+      });
+      return;
+    }
+
+    if (!recruiterPassword) {
+      showToast(AUTH_MESSAGES.passwordRequired, 'error');
+      return;
+    }
+
+    await recruiterAction.run(
+      () => signInWithPassword(email, recruiterPassword),
       {
-        fallbackError: AUTH_MESSAGES.recruiterDemoFailed,
-        successMessage: AUTH_MESSAGES.welcomeRecruiter(comp),
-        onSuccess: () =>
-          onLoginSuccess(buildDemoRecruiterProfile(comp, em), { demo: true }),
+        fallbackError: AUTH_MESSAGES.recruiterAuthFailed,
+        errorLogLabel: 'Recruiter authentication error:',
       },
     );
   };
 
   const isRecruiter = portalType === 'recruiter';
-  const busy = loading || resetLoading;
+  const busy = loading || recruiterAction.isLoading || resetLoading;
 
   return (
     <div className="min-h-screen w-full bg-[#f8f9fc] text-neutral-900 flex flex-col items-center justify-center p-4 sm:p-6 font-sans relative selection:bg-neutral-900 selection:text-white overflow-x-hidden">
@@ -243,7 +291,15 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
               <span>Bioinformatics Talent Node</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-neutral-900 tracking-tight">
-              {showForgotPassword ? 'Reset Password' : isRecruiter ? 'Recruiter Login' : isRegisterMode ? 'Create Account' : 'Student Login'}
+              {showForgotPassword
+                ? 'Reset Password'
+                : isRecruiter
+                  ? isRegisterMode
+                    ? 'Create Recruiter Account'
+                    : 'Recruiter Login'
+                  : isRegisterMode
+                    ? 'Create Account'
+                    : 'Student Login'}
             </h1>
             <div className="w-10 h-1 bg-neutral-900 rounded-full" />
             <p className="text-xs text-neutral-500 pt-1 leading-relaxed">
@@ -438,21 +494,38 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
           ) : (
             /* Recruiter Form (When Recruiter selected) */
             <form onSubmit={handleRecruiterSubmit} className="space-y-4">
-              <div className="relative border-b border-neutral-300 focus-within:border-neutral-900 transition-colors pb-1">
-                <input
-                  type="text"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Company / Institution Name"
-                  required
-                  className="w-full pr-8 py-2 bg-transparent text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none font-medium"
-                />
-                <Building2 className="w-4 h-4 text-neutral-400 absolute right-1.5 top-3" />
-              </div>
+              {signUpNotice && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs text-neutral-700"
+                >
+                  <p className="font-bold text-neutral-900">
+                    {signUpNotice.title}
+                  </p>
+                  <p className="mt-1 leading-relaxed">{signUpNotice.message}</p>
+                </div>
+              )}
+
+              {isRegisterMode && (
+                <div className="relative border-b border-neutral-300 focus-within:border-neutral-900 transition-colors pb-1">
+                  <input
+                    type="text"
+                    autoComplete="organization"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="Company / Institution Name"
+                    required
+                    className="w-full pr-8 py-2 bg-transparent text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none font-medium"
+                  />
+                  <Building2 className="w-4 h-4 text-neutral-400 absolute right-1.5 top-3" />
+                </div>
+              )}
 
               <div className="relative border-b border-neutral-300 focus-within:border-neutral-900 transition-colors pb-1">
                 <input
                   type="email"
+                  autoComplete="email"
                   value={recruiterEmail}
                   onChange={(e) => setRecruiterEmail(e.target.value)}
                   placeholder="Official Company Email"
@@ -465,9 +538,16 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
               <div className="relative border-b border-neutral-300 focus-within:border-neutral-900 transition-colors pb-1">
                 <input
                   type="password"
+                  autoComplete={
+                    isRegisterMode ? 'new-password' : 'current-password'
+                  }
                   value={recruiterPassword}
                   onChange={(e) => setRecruiterPassword(e.target.value)}
-                  placeholder="Password"
+                  placeholder={
+                    isRegisterMode
+                      ? 'Password (minimum 8 characters)'
+                      : 'Password'
+                  }
                   required
                   className="w-full pr-8 py-2 bg-transparent text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none font-medium"
                 />
@@ -477,19 +557,57 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="relative group overflow-hidden w-full py-3 rounded-full bg-neutral-900 text-white hover:bg-black active:scale-[0.98] font-bold text-xs tracking-wider uppercase shadow-lg shadow-neutral-900/10 transition-all cursor-pointer flex items-center justify-center gap-2 border border-neutral-900"
+                  disabled={busy}
+                  aria-busy={recruiterAction.isLoading}
+                  className="relative group overflow-hidden w-full py-3 rounded-full bg-neutral-900 text-white hover:bg-black active:scale-[0.98] font-bold text-xs tracking-wider uppercase shadow-lg shadow-neutral-900/10 transition-all cursor-pointer flex items-center justify-center gap-2 border border-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <div className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none animate-shine" />
-                  {loading ? (
+                  {recruiterAction.isLoading ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
                       <LogIn className="w-3.5 h-3.5 text-white group-hover:translate-x-0.5 transition-transform" />
-                      <span>Access Recruiter Workspace</span>
+                      <span>
+                        {isRegisterMode
+                          ? 'Create Recruiter Account'
+                          : 'Access Recruiter Workspace'}
+                      </span>
                     </>
                   )}
                 </button>
+              </div>
+
+              {/* Recruiter register/login toggle */}
+              <div className="text-center text-xs font-medium text-neutral-500 pt-1">
+                {isRegisterMode ? (
+                  <span>
+                    Already registered?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsRegisterMode(false);
+                        setSignUpNotice(null);
+                      }}
+                      className="font-bold text-neutral-900 hover:underline cursor-pointer"
+                    >
+                      Sign In
+                    </button>
+                  </span>
+                ) : (
+                  <span>
+                    New to omic.hub?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsRegisterMode(true);
+                        setSignUpNotice(null);
+                      }}
+                      className="font-bold text-neutral-900 hover:underline cursor-pointer"
+                    >
+                      Create Recruiter Account
+                    </button>
+                  </span>
+                )}
               </div>
             </form>
           )}
