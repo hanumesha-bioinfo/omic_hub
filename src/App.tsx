@@ -4,6 +4,8 @@ import {
   AuthProvider,
   ResetPasswordPage,
   SignInPage,
+  canSeeRecruiterWorkspace,
+  canSeeStudentWorkspace,
   useAuth,
 } from './features/auth';
 import type { LoginOptions } from './features/auth';
@@ -294,9 +296,25 @@ function MainApp() {
     return <SignInPage onLoginSuccess={handleLoginSuccess} />;
   }
 
+  // STRICT ACCESS CONTROL FOR RECRUITERS:
+  // Dedicated recruiter workspace with top-level ATS navigation, candidate matching, pipeline, and analytics.
+  // These frontend predicates are UX display gates only, never the authorization authority.
+  if (canSeeRecruiterWorkspace(user)) {
+    return (
+      <RecruiterDashboardView
+        user={user}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  // A signed-in user with no recognized workspace role has no destination here.
+  if (!canSeeStudentWorkspace(user)) {
+    return <AccessDeniedScreen onLogout={handleLogout} />;
+  }
+
   // Post-Sign-In Dedicated Landing Page: Options for Basic, Plus, and Pro with First 3 Months Free
-  // (Recruiters proceed directly to their specialized recruiter talent hub)
-  if (user.userType !== 'recruiter' && !user.hasSelectedPlan) {
+  if (!user.hasSelectedPlan) {
     return (
       <PlanSelectionLandingPage
         user={user}
@@ -304,17 +322,6 @@ function MainApp() {
         onNavigateTab={() => {
           handleSelectPlan(user.planTier || 'basic', 'builder');
         }}
-      />
-    );
-  }
-
-  // STRICT ACCESS CONTROL FOR RECRUITERS:
-  // Dedicated recruiter workspace with top-level ATS navigation, candidate matching, pipeline, and analytics.
-  if (user.userType === 'recruiter') {
-    return (
-      <RecruiterDashboardView
-        user={user}
-        onLogout={handleLogout}
       />
     );
   }
@@ -594,6 +601,34 @@ function MainApp() {
         requiredTier={gatedFeatureInfo.requiredTier}
         featureDescription={gatedFeatureInfo.description}
       />
+    </div>
+  );
+}
+
+function AccessDeniedScreen({ onLogout }: { onLogout: () => void }) {
+  return (
+    <div className="min-h-screen bg-[#f8f9fc] text-neutral-900 flex items-center justify-center p-6 font-sans">
+      <div className="w-full max-w-md rounded-2xl bg-white border border-neutral-200 shadow-sm p-8 sm:p-10 text-center space-y-5">
+        <div className="w-14 h-14 rounded-xl bg-neutral-100 border border-neutral-200 flex items-center justify-center mx-auto text-neutral-800">
+          <LogOut className="w-6 h-6 text-neutral-800" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-extrabold tracking-tight text-neutral-900">
+            Access Denied
+          </h1>
+          <p className="text-sm text-neutral-500 leading-relaxed">
+            Your account does not have access to this workspace. Please sign out
+            and use an account with the correct role.
+          </p>
+        </div>
+        <button
+          onClick={onLogout}
+          className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-neutral-900 hover:bg-black text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign Out
+        </button>
+      </div>
     </div>
   );
 }

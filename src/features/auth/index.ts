@@ -9,3 +9,4 @@ export { ResetPasswordPage } from './components/ResetPasswordPage';
 export * from './authClient';
 export * from './callback';
 export * from './messages';
+export * from './roles';
