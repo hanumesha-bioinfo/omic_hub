@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 import test from 'node:test';
 import express, { type RequestHandler, type Router } from 'express';
 import {
@@ -12,10 +13,17 @@ import {
   createPlanStore,
   planStore,
   type CreateOrderRow,
+  type PlanOrder,
   type PlanStore,
   type SupabaseTableClient,
+  type UpsertEntitlementRow,
 } from '../server/lib/serverAdmin';
-import { createOrderRouter, orderRouter } from '../server/routes/payments';
+import {
+  createOrderRouter,
+  createWebhookHandler,
+  orderRouter,
+  verifyWebhookSignature,
+} from '../server/routes/payments';
 import { type AuthenticatedRequest } from '../server/middleware/auth';
 import { registerMiddleware, type RawBodyRequest } from '../server/middleware';
 
@@ -602,4 +610,347 @@ test('POST /api/payments/orders returns 500 when the order cannot be persisted',
     ),
     `expected a store-failure log with order id, user and error, got ${JSON.stringify(lines)}`,
   );
+});
+
+const WEBHOOK_SECRET = 'test_webhook_secret';
+
+function signWebhook(rawBody: string, secret = WEBHOOK_SECRET): string {
+  return createHmac('sha256', secret).update(rawBody, 'utf8').digest('hex');
+}
+
+function capturedEvent(overrides: {
+  event?: string;
+  orderId?: string;
+  paymentId?: string;
+  amount?: number;
+  currency?: string;
+  userId?: string;
+  tier?: string;
+} = {}) {
+  const {
+    event = 'payment.captured',
+    orderId = 'order_webhook_1',
+    paymentId = 'pay_webhook_1',
+    amount = 4900,
+    currency = 'INR',
+    userId = 'uuid-1',
+    tier = 'premium',
+  } = overrides;
+  return {
+    entity: 'event',
+    event,
+    payload: {
+      payment: {
+        entity: {
+          id: paymentId,
+          order_id: orderId,
+          amount,
+          currency,
+          notes: { user_id: userId, tier },
+        },
+      },
+    },
+  };
+}
+
+interface WebhookPostOptions {
+  rawBody?: string;
+  signature?: string | null;
+}
+
+/** Boots the payments router with raw-body capture at /api/payments/webhook. */
+async function withWebhookRouter(
+  router: Router,
+  run: (
+    post: (options?: WebhookPostOptions) => Promise<{ status: number; body: unknown }>,
+  ) => Promise<void>,
+) {
+  const app = express();
+  registerMiddleware(app);
+  app.use('/api/payments', router);
+  const server = app.listen(0, '127.0.0.1');
+  try {
+    await new Promise<void>((resolve) => server.once('listening', resolve));
+    const address = server.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('expected an ephemeral loopback TCP address');
+    }
+    const url = `http://127.0.0.1:${address.port}/api/payments/webhook`;
+    await run(async (options = {}) => {
+      const rawBody = options.rawBody ?? '';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (options.signature !== undefined && options.signature !== null) {
+        headers['x-razorpay-signature'] = options.signature;
+      }
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: rawBody,
+      });
+      let body: unknown = null;
+      try {
+        body = await response.json();
+      } catch {
+        // A malformed-body 400 may have a non-JSON body; status is what matters.
+      }
+      return { status: response.status, body };
+    });
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+}
+
+/** Fake store that reflects markOrderPaid so idempotency can be observed. */
+function fakeWebhookStore(orderOverrides: Partial<PlanOrder> = {}) {
+  const order: PlanOrder = {
+    orderId: 'order_webhook_1',
+    userId: 'uuid-1',
+    tier: 'premium',
+    amountPaise: 4900,
+    currency: 'INR',
+    status: 'created',
+    ...orderOverrides,
+  };
+  const getOrderCalls: string[] = [];
+  const markOrderPaidCalls: Array<[string, string]> = [];
+  const upsertEntitlementCalls: UpsertEntitlementRow[] = [];
+  const store: PlanStore = {
+    async createOrder() {},
+    async getOrder(orderId) {
+      getOrderCalls.push(orderId);
+      return order.orderId === orderId ? { ...order } : null;
+    },
+    async markOrderPaid(orderId, paymentId) {
+      markOrderPaidCalls.push([orderId, paymentId]);
+      order.status = 'paid';
+    },
+    async getEntitlement() {
+      return null;
+    },
+    async upsertEntitlement(row) {
+      upsertEntitlementCalls.push(row);
+    },
+  };
+  return {
+    store,
+    order,
+    getOrderCalls,
+    markOrderPaidCalls,
+    upsertEntitlementCalls,
+  };
+}
+
+function webhookRouter(store: PlanStore): Router {
+  return createOrderRouter({
+    requireAuth: denyAuth,
+    razorpay: fakeRazorpay().client,
+    store,
+    keyId: 'rzp_injected_key',
+    webhookSecret: WEBHOOK_SECRET,
+  });
+}
+
+test('verifyWebhookSignature accepts the exact-body HMAC and rejects bad input', () => {
+  const rawBody = '{"event":"payment.captured"}';
+  const signature = signWebhook(rawBody);
+  assert.equal(verifyWebhookSignature(rawBody, signature, WEBHOOK_SECRET), true);
+  assert.equal(verifyWebhookSignature(rawBody, undefined, WEBHOOK_SECRET), false);
+  assert.equal(verifyWebhookSignature(rawBody, 'deadbeef', WEBHOOK_SECRET), false);
+  assert.equal(verifyWebhookSignature(rawBody + ' ', signature, WEBHOOK_SECRET), false);
+  assert.equal(verifyWebhookSignature(rawBody, signature, 'other_secret'), false);
+});
+
+test('POST /api/payments/webhook grants premium for a valid captured payment', async () => {
+  const { store, markOrderPaidCalls, upsertEntitlementCalls } =
+    fakeWebhookStore();
+  const rawBody = JSON.stringify(capturedEvent());
+
+  await withWebhookRouter(webhookRouter(store), async (post) => {
+    const { status, body } = await post({
+      rawBody,
+      signature: signWebhook(rawBody),
+    });
+    assert.equal(status, 200);
+    assert.deepEqual(body, { received: true });
+  });
+
+  assert.deepEqual(markOrderPaidCalls, [['order_webhook_1', 'pay_webhook_1']]);
+  assert.deepEqual(upsertEntitlementCalls, [
+    {
+      userId: 'uuid-1',
+      tier: 'premium',
+      orderId: 'order_webhook_1',
+      paymentId: 'pay_webhook_1',
+    },
+  ]);
+});
+
+test('POST /api/payments/webhook grants premium for a verified order.paid event', async () => {
+  const { store, markOrderPaidCalls, upsertEntitlementCalls } =
+    fakeWebhookStore();
+  const rawBody = JSON.stringify({
+    entity: 'event',
+    event: 'order.paid',
+    payload: {
+      order: {
+        entity: {
+          id: 'order_webhook_1',
+          amount: 4900,
+          currency: 'INR',
+          notes: { user_id: 'uuid-1', tier: 'premium' },
+        },
+      },
+      payment: {
+        entity: {
+          id: 'pay_webhook_1',
+          order_id: 'order_webhook_1',
+          amount: 4900,
+          currency: 'INR',
+        },
+      },
+    },
+  });
+
+  await withWebhookRouter(webhookRouter(store), async (post) => {
+    const { status } = await post({
+      rawBody,
+      signature: signWebhook(rawBody),
+    });
+    assert.equal(status, 200);
+  });
+
+  assert.deepEqual(markOrderPaidCalls, [['order_webhook_1', 'pay_webhook_1']]);
+  assert.deepEqual(upsertEntitlementCalls, [
+    {
+      userId: 'uuid-1',
+      tier: 'premium',
+      orderId: 'order_webhook_1',
+      paymentId: 'pay_webhook_1',
+    },
+  ]);
+});
+
+test('POST /api/payments/webhook rejects missing or invalid signatures with 401 and no store access', async () => {
+  const rawBody = JSON.stringify(capturedEvent());
+  const badSignatures = [
+    undefined,
+    'deadbeef',
+    signWebhook(rawBody, 'wrong_secret'),
+  ];
+
+  for (const signature of badSignatures) {
+    const {
+      store,
+      getOrderCalls,
+      markOrderPaidCalls,
+      upsertEntitlementCalls,
+    } = fakeWebhookStore();
+    await withWebhookRouter(webhookRouter(store), async (post) => {
+      const { status, body } = await post({ rawBody, signature });
+      assert.equal(status, 401);
+      assert.deepEqual(body, { error: 'Unauthorized' });
+    });
+    assert.deepEqual(getOrderCalls, []);
+    assert.deepEqual(markOrderPaidCalls, []);
+    assert.deepEqual(upsertEntitlementCalls, []);
+  }
+});
+
+test('POST /api/payments/webhook rejects malformed JSON with 400 and no writes', async () => {
+  const rawBody = '{"event":"payment.captured",';
+  const { store, markOrderPaidCalls, upsertEntitlementCalls } =
+    fakeWebhookStore();
+
+  await withWebhookRouter(webhookRouter(store), async (post) => {
+    const { status } = await post({
+      rawBody,
+      signature: signWebhook(rawBody),
+    });
+    assert.equal(status, 400);
+  });
+
+  assert.deepEqual(markOrderPaidCalls, []);
+  assert.deepEqual(upsertEntitlementCalls, []);
+});
+
+test('POST /api/payments/webhook ignores an unrelated event', async () => {
+  const rawBody = JSON.stringify(capturedEvent({ event: 'payment.failed' }));
+  const { store, getOrderCalls, markOrderPaidCalls, upsertEntitlementCalls } =
+    fakeWebhookStore();
+
+  await withWebhookRouter(webhookRouter(store), async (post) => {
+    const { status } = await post({
+      rawBody,
+      signature: signWebhook(rawBody),
+    });
+    assert.equal(status, 200);
+  });
+
+  assert.deepEqual(getOrderCalls, []);
+  assert.deepEqual(markOrderPaidCalls, []);
+  assert.deepEqual(upsertEntitlementCalls, []);
+});
+
+const webhookMismatchCases: Array<{
+  name: string;
+  event: ReturnType<typeof capturedEvent>;
+  orderOverrides?: Partial<PlanOrder>;
+}> = [
+  { name: 'an unknown order id', event: capturedEvent({ orderId: 'order_unknown' }) },
+  { name: 'a wrong notes.user_id', event: capturedEvent({ userId: 'attacker' }) },
+  { name: 'a wrong tier', event: capturedEvent({ tier: 'plus' }) },
+  { name: 'a wrong amount', event: capturedEvent({ amount: 100 }) },
+  { name: 'a wrong currency', event: capturedEvent({ currency: 'USD' }) },
+  {
+    name: 'a stored order with the wrong tier',
+    event: capturedEvent(),
+    orderOverrides: { tier: 'plus' },
+  },
+];
+
+for (const item of webhookMismatchCases) {
+  test(`POST /api/payments/webhook rejects ${item.name} with 400 and no writes`, async () => {
+    const { store, markOrderPaidCalls, upsertEntitlementCalls } =
+      fakeWebhookStore(item.orderOverrides);
+    const rawBody = JSON.stringify(item.event);
+
+    await withWebhookRouter(webhookRouter(store), async (post) => {
+      const { status, body } = await post({
+        rawBody,
+        signature: signWebhook(rawBody),
+      });
+      assert.equal(status, 400);
+      assert.ok(body && typeof body === 'object' && 'error' in body);
+    });
+
+    assert.deepEqual(markOrderPaidCalls, []);
+    assert.deepEqual(upsertEntitlementCalls, []);
+  });
+}
+
+test('POST /api/payments/webhook is idempotent for a repeated captured payment', async () => {
+  const { store, markOrderPaidCalls, upsertEntitlementCalls } =
+    fakeWebhookStore();
+  const rawBody = JSON.stringify(capturedEvent());
+  const signature = signWebhook(rawBody);
+
+  await withWebhookRouter(webhookRouter(store), async (post) => {
+    const first = await post({ rawBody, signature });
+    const second = await post({ rawBody, signature });
+    assert.equal(first.status, 200);
+    assert.equal(second.status, 200);
+  });
+
+  assert.equal(markOrderPaidCalls.length, 1);
+  assert.equal(upsertEntitlementCalls.length, 1);
+});
+
+test('createWebhookHandler is exported as a standalone RequestHandler', () => {
+  const { store } = fakeWebhookStore();
+  const handler = createWebhookHandler({ store, secret: WEBHOOK_SECRET });
+  assert.equal(typeof handler, 'function');
 });
