@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { Request, RequestHandler, Response } from 'express';
+import express, {
+  type Request,
+  type RequestHandler,
+  type Response,
+} from 'express';
 import {
   SUPABASE_SERVICE_ROLE_KEY,
   SUPABASE_URL,
 } from '../server/config';
+import { createRecruiterRouter } from '../server/routes/recruiter';
 import {
   adminVerifier,
   createSupabaseAdminVerifier,
@@ -399,4 +404,86 @@ test('requireAuth ignores forged JWT metadata and trusts the profile role', asyn
   });
   assert.equal(result.status, 403);
   assert.deepEqual(result.body, { error: 'Forbidden' });
+});
+
+/** Boots the recruiter router on a fresh Express app over an ephemeral loopback port. */
+async function withRecruiterRouter(
+  router: ReturnType<typeof createRecruiterRouter>,
+  runRequest: (
+    get: (init?: RequestInit) => Promise<{ status: number; body: unknown }>,
+  ) => Promise<void>,
+) {
+  const app = express();
+  app.use(router);
+  const server = app.listen(0, '127.0.0.1');
+  try {
+    await new Promise<void>((resolve) => server.once('listening', resolve));
+    const address = server.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('expected an ephemeral loopback TCP address');
+    }
+    const url = `http://127.0.0.1:${address.port}/api/recruiter/me`;
+    await runRequest(async (init) => {
+      const response = await fetch(url, init);
+      return { status: response.status, body: await response.json() };
+    });
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+}
+
+test('GET /api/recruiter/me returns verified recruiter data from the DB profile', async () => {
+  const verifier = fakeVerifier({
+    user: { id: 'recruiter-uuid' },
+    profile: {
+      id: 'recruiter-uuid',
+      full_name: 'Ada Lovelace',
+      user_type: 'recruiter',
+      company_name: 'Helix Bio',
+    },
+  });
+
+  await withRecruiterRouter(createRecruiterRouter(verifier), async (get) => {
+    const { status, body } = await get({
+      headers: { authorization: 'Bearer recruiter-token' },
+    });
+    assert.equal(status, 200);
+    assert.deepEqual(body, {
+      userId: 'recruiter-uuid',
+      role: 'recruiter',
+      companyName: 'Helix Bio',
+    });
+  });
+});
+
+test('GET /api/recruiter/me forbids a student token', async () => {
+  const verifier = fakeVerifier({
+    user: { id: 'student-uuid' },
+    profile: {
+      id: 'student-uuid',
+      full_name: 'Grace Hopper',
+      user_type: 'student',
+      company_name: null,
+    },
+  });
+
+  await withRecruiterRouter(createRecruiterRouter(verifier), async (get) => {
+    const { status, body } = await get({
+      headers: { authorization: 'Bearer student-token' },
+    });
+    assert.equal(status, 403);
+    assert.deepEqual(body, { error: 'Forbidden' });
+  });
+});
+
+test('GET /api/recruiter/me returns 401 when no authorization header is sent', async () => {
+  const verifier = fakeVerifier();
+
+  await withRecruiterRouter(createRecruiterRouter(verifier), async (get) => {
+    const { status, body } = await get();
+    assert.equal(status, 401);
+    assert.deepEqual(body, { error: 'Unauthorized' });
+  });
 });
