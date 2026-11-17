@@ -8,9 +8,14 @@ import {
   classifySignUpResult,
   resolveInitialSessionWithClient,
   signInWithGoogleWithClient,
+  signInWithPasswordWithClient,
   signOutWithClient,
+  signUpRecruiterWithClient,
+  type RecruiterSignUpInput,
 } from './authOperations';
 import { AUTH_MESSAGES } from './messages';
+
+export type { RecruiterSignUpInput };
 
 export interface StudentSignUpInput {
   fullName: string;
@@ -98,16 +103,17 @@ export async function signUpStudent(
   return classifySignUpResult(data);
 }
 
+export async function signUpRecruiter(
+  input: RecruiterSignUpInput,
+): Promise<StudentSignUpResult> {
+  return signUpRecruiterWithClient(supabase, input, getAuthRedirectUrl());
+}
+
 export async function signInWithPassword(
   email: string,
   password: string,
 ): Promise<void> {
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) throw error;
+  return signInWithPasswordWithClient(supabase, email, password);
 }
 
 export async function getSession(): Promise<AuthSession | null> {

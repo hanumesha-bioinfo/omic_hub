@@ -53,6 +53,42 @@ interface SignUpResponse {
   user: { identities?: unknown[] | null } | null;
 }
 
+export interface RecruiterSignUpInput {
+  companyName: string;
+  email: string;
+  password: string;
+}
+
+export interface RecruiterSignUpOptions {
+  data: {
+    full_name: string;
+    user_type: 'recruiter';
+    company_name: string;
+  };
+  emailRedirectTo: string;
+}
+
+/** Minimal auth surface needed to sign up a recruiter. */
+export interface RecruiterSignUpClient {
+  auth: {
+    signUp(credentials: {
+      email: string;
+      password: string;
+      options: RecruiterSignUpOptions;
+    }): Promise<{ data: SignUpResponse; error: unknown }>;
+  };
+}
+
+/** Minimal auth surface needed to sign in with a password. */
+export interface PasswordSignInClient {
+  auth: {
+    signInWithPassword(credentials: {
+      email: string;
+      password: string;
+    }): Promise<{ error: unknown }>;
+  };
+}
+
 /**
  * Interpret Supabase's anti-enumeration sign-up response.
  *
@@ -154,4 +190,46 @@ export async function signOutWithClient(
 
     throw error;
   }
+}
+
+export function buildRecruiterSignUpOptions(
+  input: RecruiterSignUpInput,
+  redirectTo: string,
+): RecruiterSignUpOptions {
+  const companyName = input.companyName.trim();
+
+  return {
+    data: {
+      full_name: `${companyName} Talent Acquisition`,
+      user_type: 'recruiter',
+      company_name: companyName,
+    },
+    emailRedirectTo: redirectTo,
+  };
+}
+
+export async function signUpRecruiterWithClient(
+  client: RecruiterSignUpClient,
+  input: RecruiterSignUpInput,
+  redirectTo: string,
+): Promise<SignUpOutcome> {
+  const { data, error } = await client.auth.signUp({
+    email: input.email,
+    password: input.password,
+    options: buildRecruiterSignUpOptions(input, redirectTo),
+  });
+
+  if (error) throw error;
+
+  return classifySignUpResult(data);
+}
+
+export async function signInWithPasswordWithClient(
+  client: PasswordSignInClient,
+  email: string,
+  password: string,
+): Promise<void> {
+  const { error } = await client.auth.signInWithPassword({ email, password });
+
+  if (error) throw error;
 }
