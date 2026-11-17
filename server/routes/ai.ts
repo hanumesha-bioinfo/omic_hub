@@ -1,10 +1,51 @@
-import express, { Request, Response } from 'express';
+import express, { type Request, type RequestHandler, type Response, type Router } from 'express';
 import { aiClient, apiKey, generateAIResponse } from '../ai/client';
+import { asyncHandler } from '../lib/asyncHandler';
+import { type AuthenticatedRequest, requireAuth } from '../middleware/auth';
+import { createRateLimiter } from '../middleware/rateLimit';
+import { firstInvalidField } from '../middleware/validate';
 
-export const aiRouter = express.Router();
+const CHAT_MODEL = 'gemini-3.5-flash';
+const CHAT_SYSTEM_INSTRUCTION = `You are an elite Bioinformatics Principal Investigator & Career Mentor. You guide computational biology students, researchers, and engineers with technical rigor, genomics pipeline best practices (Nextflow, GATK 4, AlphaFold, Seurat), resume optimization, and interview preparation. Answer with scientific depth and practical code examples where helpful.`;
+const CHAT_ROLE_LABEL = 'Bioinformatics Mentor';
 
-// 1. Resume Bullet / Section Improver
-aiRouter.post('/api/ai/resume-improve', async (req: Request, res: Response) => {
+const userLimiter = createRateLimiter({
+  windowMs: 60_000,
+  max: 60,
+  key: (req) => (req as AuthenticatedRequest).auth?.userId ?? 'anon',
+});
+const ipLimiter = createRateLimiter({
+  windowMs: 60_000,
+  max: 60,
+  key: (req) => req.ip ?? 'unknown',
+});
+
+export interface AiRouterDeps {
+  requireAuth: RequestHandler;
+  rateLimiters: RequestHandler[];
+}
+
+export function createAiRouter(deps: AiRouterDeps): Router {
+  const router = express.Router();
+  router.use(deps.requireAuth);
+  for (const limiter of deps.rateLimiters) router.use(limiter);
+
+  const post = (
+    path: string,
+    handler: (req: Request, res: Response) => Promise<unknown>,
+  ) => {
+    router.post(path, asyncHandler(handler));
+  };
+
+  // 1. Resume Bullet / Section Improver
+  post('/api/ai/resume-improve', async (req: Request, res: Response) => {
+  const invalid = firstInvalidField(req.body, {
+    text: { type: 'string', required: true, maxLength: 8000 },
+    section: { type: 'string', maxLength: 200 },
+    role: { type: 'string', maxLength: 200 },
+  });
+  if (invalid) return res.status(400).json({ error: `Invalid ${invalid}` });
+
   const { text, section, role } = req.body;
   if (!text) {
     return res.status(400).json({ error: 'Text is required' });
@@ -76,8 +117,15 @@ Provide your feedback in strictly valid JSON format with this exact structure:
   return res.json(result);
 });
 
-// 2. Full Resume Analyzer with Industry Benchmarks
-aiRouter.post('/api/ai/resume-analyze', async (req: Request, res: Response) => {
+  // 2. Full Resume Analyzer with Industry Benchmarks
+  post('/api/ai/resume-analyze', async (req: Request, res: Response) => {
+  const invalid = firstInvalidField(req.body, {
+    resumeText: { type: 'string', required: true, maxLength: 20000 },
+    targetRole: { type: 'string', maxLength: 200 },
+    industry: { type: 'string', maxLength: 200 },
+  });
+  if (invalid) return res.status(400).json({ error: `Invalid ${invalid}` });
+
   const { resumeText, targetRole, industry } = req.body;
 
   const prompt = `You are an elite AI ATS scanner and recruiting director evaluating a resume for a "${targetRole || 'Software Engineer'}" role in the "${industry || 'Technology'}" industry.
@@ -158,8 +206,16 @@ Respond ONLY in valid JSON with this exact schema:
   return res.json(result);
 });
 
-// 3. Mock Interview Question Generator
-aiRouter.post('/api/ai/mock-interview/generate-questions', async (req: Request, res: Response) => {
+  // 3. Mock Interview Question Generator
+  post('/api/ai/mock-interview/generate-questions', async (req: Request, res: Response) => {
+  const invalid = firstInvalidField(req.body, {
+    role: { type: 'string', required: true, maxLength: 200 },
+    interviewType: { type: 'string', maxLength: 100 },
+    seniority: { type: 'string', maxLength: 100 },
+    testedSkill: { type: 'string', maxLength: 200 },
+  });
+  if (invalid) return res.status(400).json({ error: `Invalid ${invalid}` });
+
   const { role, interviewType, seniority, testedSkill } = req.body;
 
   const skillPrompt = testedSkill
@@ -242,8 +298,17 @@ Provide strictly valid JSON with this exact structure:
   return res.json(result);
 });
 
-// 4. Mock Interview Response Evaluator
-aiRouter.post('/api/ai/mock-interview/evaluate-response', async (req: Request, res: Response) => {
+  // 4. Mock Interview Response Evaluator
+  post('/api/ai/mock-interview/evaluate-response', async (req: Request, res: Response) => {
+  const invalid = firstInvalidField(req.body, {
+    question: { type: 'string', required: true, maxLength: 2000 },
+    candidateAnswer: { type: 'string', required: true, maxLength: 8000 },
+    role: { type: 'string', required: true, maxLength: 200 },
+    interviewType: { type: 'string', maxLength: 100 },
+    testedSkill: { type: 'string', maxLength: 200 },
+  });
+  if (invalid) return res.status(400).json({ error: `Invalid ${invalid}` });
+
   const { question, candidateAnswer, role, interviewType, testedSkill } = req.body;
 
   if (!candidateAnswer || candidateAnswer.trim().length < 10) {
@@ -315,8 +380,15 @@ Provide strictly valid JSON with this exact structure:
   return res.json(result);
 });
 
-// 5. Skill & Career Path Advisory
-aiRouter.post('/api/ai/skills-recommend', async (req: Request, res: Response) => {
+  // 5. Skill & Career Path Advisory
+  post('/api/ai/skills-recommend', async (req: Request, res: Response) => {
+  const invalid = firstInvalidField(req.body, {
+    currentRole: { type: 'string', required: true, maxLength: 200 },
+    targetRole: { type: 'string', required: true, maxLength: 200 },
+    completedSkills: { type: 'array', maxItems: 50, item: 'string' },
+  });
+  if (invalid) return res.status(400).json({ error: `Invalid ${invalid}` });
+
   const { currentRole, targetRole, completedSkills } = req.body;
 
   const prompt = `You are a Principal Computational Biology Career Architect and Scientific Mentor.
@@ -402,13 +474,14 @@ Provide strictly valid JSON with this exact structure:
   return res.json(result);
 });
 
-// 6. Gemini Multi-Turn Chatbot with Roles & History
-aiRouter.post('/api/ai/chat', async (req: Request, res: Response) => {
-  const { messages, model, role, systemInstruction } = req.body;
-  const chosenModel = model || 'gemini-3.5-flash';
-  const roleInstruction =
-    systemInstruction ||
-    `You are an elite ${role || 'Bioinformatics Principal Investigator & Career Mentor'}. You guide computational biology students, researchers, and engineers with technical rigor, genomics pipeline best practices (Nextflow, GATK 4, AlphaFold, Seurat), resume optimization, and interview preparation. Answer with scientific depth and practical code examples where helpful.`;
+  // 6. Gemini Multi-Turn Chatbot with Roles & History
+  post('/api/ai/chat', async (req: Request, res: Response) => {
+  const invalid = firstInvalidField(req.body, {
+    messages: { type: 'array', maxItems: 50, item: 'message' },
+  });
+  if (invalid) return res.status(400).json({ error: `Invalid ${invalid}` });
+
+  const { messages } = req.body;
 
   if (aiClient && apiKey) {
     try {
@@ -419,15 +492,15 @@ aiRouter.post('/api/ai/chat', async (req: Request, res: Response) => {
       const lastMsg = messages && messages.length > 0 ? messages[messages.length - 1] : { text: 'Hello' };
 
       const chat = aiClient.chats.create({
-        model: chosenModel,
+        model: CHAT_MODEL,
         history,
         config: {
-          systemInstruction: roleInstruction,
+          systemInstruction: CHAT_SYSTEM_INSTRUCTION,
           temperature: 0.7,
         },
       });
       const response = await chat.sendMessage({ message: lastMsg.text || '' });
-      return res.json({ text: response.text, model: chosenModel });
+      return res.json({ text: response.text, model: CHAT_MODEL });
     } catch (err: any) {
       console.warn('Gemini chat failed, falling back:', err);
     }
@@ -436,14 +509,19 @@ aiRouter.post('/api/ai/chat', async (req: Request, res: Response) => {
   const lastMsgText =
     messages && messages.length > 0 ? messages[messages.length - 1].text : 'Bioinformatics pipelines';
   return res.json({
-    text: `As your ${role || 'Bioinformatics Mentor'}: Regarding "${lastMsgText.slice(0, 80)}", computational biology emphasizes reproducible workflows (Nextflow DSL2 with Singularity/Docker) and statistically validated variant calling (GATK 4 Best Practices). Structure your experiments with explicit quality controls (FastQC, MultiQC) and benchmark against GIAB reference standards.`,
-    model: chosenModel,
+    text: `As your ${CHAT_ROLE_LABEL}: Regarding "${lastMsgText.slice(0, 80)}", computational biology emphasizes reproducible workflows (Nextflow DSL2 with Singularity/Docker) and statistically validated variant calling (GATK 4 Best Practices). Structure your experiments with explicit quality controls (FastQC, MultiQC) and benchmark against GIAB reference standards.`,
+    model: CHAT_MODEL,
     isFallback: true,
   });
 });
 
-// 7. Google Search Grounding with Gemini 3.5 Flash
-aiRouter.post('/api/ai/search-grounding', async (req: Request, res: Response) => {
+  // 7. Google Search Grounding with Gemini 3.5 Flash
+  post('/api/ai/search-grounding', async (req: Request, res: Response) => {
+  const invalid = firstInvalidField(req.body, {
+    query: { type: 'string', required: true, maxLength: 500 },
+  });
+  if (invalid) return res.status(400).json({ error: `Invalid ${invalid}` });
+
   const { query: searchQuery } = req.body;
   const prompt = `Search the web for the latest real-time industry news, breakthroughs, and hiring trends in Bioinformatics & Computational Genomics: "${searchQuery || 'latest bioinformatics breakthroughs and job trends 2026'}".
 Provide a summary, technological impact on bioinformatics students (Nextflow, AlphaFold, GATK, single-cell RNA-seq), and cite relevant web sources.`;
@@ -488,8 +566,15 @@ Provide a summary, technological impact on bioinformatics students (Nextflow, Al
   });
 });
 
-// 8. Audio Transcription with Gemini 3.5 Transcribe
-aiRouter.post('/api/ai/transcribe', async (req: Request, res: Response) => {
+  // 8. Audio Transcription with Gemini 3.5 Transcribe
+  post('/api/ai/transcribe', async (req: Request, res: Response) => {
+  const invalid = firstInvalidField(req.body, {
+    audioData: { type: 'string', required: true, maxLength: 12_000_000 },
+    mimeType: { type: 'string', maxLength: 100 },
+    prompt: { type: 'string', maxLength: 1000 },
+  });
+  if (invalid) return res.status(400).json({ error: `Invalid ${invalid}` });
+
   const { audioData, mimeType, prompt } = req.body;
   if (!audioData) {
     return res.status(400).json({ error: 'Audio data is required' });
@@ -524,8 +609,15 @@ aiRouter.post('/api/ai/transcribe', async (req: Request, res: Response) => {
   });
 });
 
-// 9. Image Generation and Editing with Gemini 3.1 Flash Image
-aiRouter.post('/api/ai/generate-image', async (req: Request, res: Response) => {
+  // 9. Image Generation and Editing with Gemini 3.1 Flash Image
+  post('/api/ai/generate-image', async (req: Request, res: Response) => {
+  const invalid = firstInvalidField(req.body, {
+    prompt: { type: 'string', required: true, maxLength: 2000 },
+    base64Image: { type: 'string', maxLength: 12_000_000 },
+    aspectRatio: { type: 'string', maxLength: 20 },
+  });
+  if (invalid) return res.status(400).json({ error: `Invalid ${invalid}` });
+
   const { prompt, base64Image, aspectRatio } = req.body;
   if (!prompt) {
     return res.status(400).json({ error: 'Prompt is required' });
@@ -595,8 +687,14 @@ aiRouter.post('/api/ai/generate-image', async (req: Request, res: Response) => {
   });
 });
 
-// 10. Voice TTS Synthesis with Gemini 3.8 Flash Lite TTS
-aiRouter.post('/api/ai/voice-speak', async (req: Request, res: Response) => {
+  // 10. Voice TTS Synthesis with Gemini 3.8 Flash Lite TTS
+  post('/api/ai/voice-speak', async (req: Request, res: Response) => {
+  const invalid = firstInvalidField(req.body, {
+    text: { type: 'string', required: true, maxLength: 1000 },
+    voiceName: { type: 'string', maxLength: 50 },
+  });
+  if (invalid) return res.status(400).json({ error: `Invalid ${invalid}` });
+
   const { text, voiceName } = req.body;
   if (!text) {
     return res.status(400).json({ error: 'Text is required' });
@@ -639,19 +737,27 @@ aiRouter.post('/api/ai/voice-speak', async (req: Request, res: Response) => {
   return res.json({ audio: null, message: 'Speech generated' });
 });
 
-const AI_POST_ROUTES = [
-  '/api/ai/resume-improve',
-  '/api/ai/resume-analyze',
-  '/api/ai/mock-interview/generate-questions',
-  '/api/ai/mock-interview/evaluate-response',
-  '/api/ai/skills-recommend',
-  '/api/ai/chat',
-  '/api/ai/search-grounding',
-  '/api/ai/transcribe',
-  '/api/ai/generate-image',
-  '/api/ai/voice-speak',
-];
+  const AI_POST_ROUTES = [
+    '/api/ai/resume-improve',
+    '/api/ai/resume-analyze',
+    '/api/ai/mock-interview/generate-questions',
+    '/api/ai/mock-interview/evaluate-response',
+    '/api/ai/skills-recommend',
+    '/api/ai/chat',
+    '/api/ai/search-grounding',
+    '/api/ai/transcribe',
+    '/api/ai/generate-image',
+    '/api/ai/voice-speak',
+  ];
 
-aiRouter.all(AI_POST_ROUTES, (_req: Request, res: Response) => {
-  return res.status(405).json({ error: 'Method not allowed' });
+  router.all(AI_POST_ROUTES, (_req: Request, res: Response) => {
+    return res.status(405).json({ error: 'Method not allowed' });
+  });
+
+  return router;
+}
+
+export const aiRouter = createAiRouter({
+  requireAuth,
+  rateLimiters: [userLimiter, ipLimiter],
 });
