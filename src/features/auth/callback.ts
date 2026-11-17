@@ -75,6 +75,28 @@ export function parseAuthCallbackError(
   };
 }
 
+const RECOVERY_ERROR_HINTS = [
+  /email link/i,
+  /recovery link/i,
+  /reset link/i,
+  /password reset/i,
+  /invalid or has expired/i,
+] as const;
+
+/**
+ * Distinguish a broken password-recovery link from a cancelled OAuth attempt.
+ *
+ * Supabase reports expired recovery links with `otp_expired`, but some
+ * providers only include `access_denied` plus an explanatory description.
+ */
+export function isPasswordRecoveryError(error: AuthCallbackError): boolean {
+  if (error.code === 'otp_expired') return true;
+
+  const description = error.description ?? '';
+
+  return RECOVERY_ERROR_HINTS.some((hint) => hint.test(description));
+}
+
 export type AuthCallbackKind = 'none' | 'error' | 'pkce' | 'implicit';
 
 /**

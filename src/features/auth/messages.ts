@@ -1,14 +1,26 @@
+import {
+  isPasswordRecoveryError,
+  type AuthCallbackError,
+} from './callback';
+import { MIN_PASSWORD_LENGTH } from './validation';
+
+const PASSWORD_MIN_LENGTH_MESSAGE = `Your password must contain at least ${MIN_PASSWORD_LENGTH} characters.`;
+
 export const AUTH_MESSAGES = {
   invalidEmail: 'Please enter a valid email address.',
   invalidLoginEmail: 'Please enter your registered email address.',
-  shortStudentPassword: 'Your password must contain at least 6 characters.',
+  passwordTooShort: PASSWORD_MIN_LENGTH_MESSAGE,
+  passwordRequired: 'Please enter your password.',
+  shortStudentPassword: PASSWORD_MIN_LENGTH_MESSAGE,
   missingFullName: 'Please enter your full name.',
   googleSignInFailed: 'Google sign-in failed. Please try again.',
   resetEmailSent: 'If an account exists for that email, a password-reset link will be sent.',
   resetRequestFailed: 'Could not request a password reset. Please try again.',
   accountCreated: 'Account created successfully!',
   accountCreatedConfirmEmail:
-    'Account created. Check your email to confirm your account before signing in.',
+    'Account created. Check your inbox (and spam folder) and confirm your email address before signing in.',
+  signUpDuplicateEmail:
+    'If you already have an Omic Hub account, sign in or reset your password. Otherwise, check your inbox for a confirmation email.',
   signingIn: 'Signing in to Omic Hub...',
   studentAuthFailed: 'Student authentication failed. Please try again.',
   welcomeRecruiter: (company: string) => `Welcome to Recruiter Workspace, ${company}!`,
@@ -16,7 +28,7 @@ export const AUTH_MESSAGES = {
   profileLoadFailed: 'Could not load your Omic Hub profile.',
   signOutFailed: 'Could not sign out. Please try again.',
   signedOut: 'Signed out of Omic Hub',
-  shortNewPassword: 'Your password must contain at least 8 characters.',
+  shortNewPassword: PASSWORD_MIN_LENGTH_MESSAGE,
   passwordMismatch: 'The passwords do not match.',
   missingResetSession:
     'Your reset session is missing or expired. Please request a new reset email.',
@@ -24,11 +36,11 @@ export const AUTH_MESSAGES = {
   passwordUpdateFailed: 'Could not update your password. Please try again.',
   recruiterDemoFailed: 'Could not open the recruiter workspace. Please try again.',
   invalidCredentials:
-    'Incorrect email or password. If you created your account with Google, use "Continue with Google".',
+    'Incorrect email or password. If you created your account with Google, use "Continue with Google". You can also reset your password.',
   emailNotConfirmed:
-    'Please confirm your email address before signing in. Check your inbox for the confirmation link.',
+    'Please confirm your email address before signing in. Check your inbox and spam folder for the confirmation link.',
   accountAlreadyExists:
-    'An account with this email already exists. Try signing in instead.',
+    'If an account with this email already exists, sign in instead or reset your password.',
   weakPassword:
     'Your password does not meet the security requirements. Please choose a stronger password.',
   networkError:
@@ -40,8 +52,9 @@ export const AUTH_MESSAGES = {
   oauthCancelled: 'Sign-in was cancelled.',
   oauthFailed: 'Sign-in could not be completed. Please try again.',
   oauthIncomplete:
-    'This sign-in link is no longer valid in this browser. Please return to Omic Hub and try signing in again.',
-  resetLinkExpired: 'This link has expired. Please request a new one.',
+    'This sign-in or password-reset link is no longer valid in this browser. Return to Omic Hub and try again.',
+  resetLinkExpired:
+    'This password reset link is invalid or has expired. Request a new reset email to continue.',
   authCallbackFailed:
     'We could not complete sign-in from that link. Please try again.',
   authRedirectMissing:
@@ -197,4 +210,22 @@ export function getAuthErrorMessage(error: unknown, fallback: string): string {
   }
 
   return fallback;
+}
+
+/**
+ * Resolve callback failure guidance with recovery links taking precedence.
+ *
+ * A recovery link can fail with `access_denied`, which normally means a
+ * cancelled OAuth sign-in. When the callback came from password recovery, the
+ * actionable message is that the reset link is invalid/expired.
+ */
+export function getAuthCallbackFailureMessage(
+  error: AuthCallbackError,
+  recoveryContext = false,
+): string {
+  if (recoveryContext || isPasswordRecoveryError(error)) {
+    return AUTH_MESSAGES.resetLinkExpired;
+  }
+
+  return getAuthErrorMessage(error, AUTH_MESSAGES.authCallbackFailed);
 }

@@ -21,9 +21,19 @@ import { buildDemoRecruiterProfile, DEMO_RECRUITER_DELAY_MS } from '../demoRecru
 import type { LoginOptions } from '../AuthProvider';
 import { AUTH_MESSAGES } from '../messages';
 import { useAuthAction } from '../useAuthAction';
+import {
+  isPasswordLongEnough,
+  isValidEmail,
+  normalizeEmail,
+} from '../validation';
 
 interface SignInPageProps {
   onLoginSuccess: (user: UserProfile, options?: LoginOptions) => void;
+}
+
+interface SignUpNotice {
+  title: string;
+  message: string;
 }
 
 export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
@@ -49,10 +59,12 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
 
   const [resetEmail, setResetEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [signUpNotice, setSignUpNotice] = useState<SignUpNotice | null>(null);
 
   // Google Sign-In
 
   const handleGoogleSignIn = async () => {
+    setSignUpNotice(null);
     await studentAction.run(() => signInWithGoogle(), {
       fallbackError: AUTH_MESSAGES.googleSignInFailed,
       keepLoadingOnSuccess: true,
@@ -83,13 +95,14 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
     e?.preventDefault();
 
     const nameToUse = username.trim();
-    const emailToUse = (
-      isRegisterMode ? studentEmail : username
-    ).trim().toLowerCase();
+    const emailToUse = normalizeEmail(isRegisterMode ? studentEmail : username);
+    const isRegistration = isRegisterMode;
 
-    if (!emailToUse || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailToUse)) {
+    setSignUpNotice(null);
+
+    if (!isValidEmail(emailToUse)) {
       showToast(
-        isRegisterMode
+        isRegistration
           ? AUTH_MESSAGES.invalidEmail
           : AUTH_MESSAGES.invalidLoginEmail,
         'error',
@@ -97,18 +110,23 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
       return;
     }
 
-    if (studentPassword.length < 6) {
-      showToast(AUTH_MESSAGES.shortStudentPassword, 'error');
+    if (isRegistration && !isPasswordLongEnough(studentPassword)) {
+      showToast(AUTH_MESSAGES.passwordTooShort, 'error');
       return;
     }
 
-    if (isRegisterMode && !nameToUse) {
+    if (!isRegistration && !studentPassword) {
+      showToast(AUTH_MESSAGES.passwordRequired, 'error');
+      return;
+    }
+
+    if (isRegistration && !nameToUse) {
       showToast(AUTH_MESSAGES.missingFullName, 'error');
       return;
     }
 
-    if (isRegisterMode) {
-      await studentAction.run(
+    if (isRegistration) {
+      const result = await studentAction.run(
         () =>
           signUpStudent({
             fullName: nameToUse,
@@ -117,14 +135,23 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
           }),
         {
           fallbackError: AUTH_MESSAGES.studentAuthFailed,
-          successMessage: (result) =>
-            result.hasSession
-              ? AUTH_MESSAGES.accountCreated
-              : AUTH_MESSAGES.accountCreatedConfirmEmail,
-          successType: (result) => (result.hasSession ? 'success' : 'info'),
           errorLogLabel: 'Student authentication error:',
         },
       );
+
+      if (!result) return;
+
+      if (result.hasSession) {
+        showToast(AUTH_MESSAGES.accountCreated, 'success');
+        return;
+      }
+
+      setSignUpNotice({
+        title: result.possibleDuplicateEmail ? 'Next step' : 'Confirm your email',
+        message: result.possibleDuplicateEmail
+          ? AUTH_MESSAGES.signUpDuplicateEmail
+          : AUTH_MESSAGES.accountCreatedConfirmEmail,
+      });
       return;
     }
 
@@ -159,6 +186,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
   };
 
   const isRecruiter = portalType === 'recruiter';
+  const busy = loading || resetLoading;
 
   return (
     <div className="min-h-screen w-full bg-[#f8f9fc] text-neutral-900 flex flex-col items-center justify-center p-4 sm:p-6 font-sans relative selection:bg-neutral-900 selection:text-white overflow-x-hidden">
@@ -228,6 +256,19 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
           {!isRecruiter ? (
             /* Student Form (On Left White Side) */
             <form onSubmit={handleStudentSubmit} className="space-y-4">
+              {signUpNotice && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs text-neutral-700"
+                >
+                  <p className="font-bold text-neutral-900">
+                    {signUpNotice.title}
+                  </p>
+                  <p className="mt-1 leading-relaxed">{signUpNotice.message}</p>
+                </div>
+              )}
+
               <div className="relative border-b border-neutral-300 focus-within:border-neutral-900 transition-colors pb-1">
                 <input
                   type={isRegisterMode ? 'text' : 'email'}
@@ -262,7 +303,11 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
                   autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
                   value={studentPassword}
                   onChange={(e) => setStudentPassword(e.target.value)}
-                  placeholder="Password"
+                  placeholder={
+                    isRegisterMode
+                      ? 'Password (minimum 8 characters)'
+                      : 'Password'
+                  }
                   required
                   className="w-full pr-8 py-2 bg-transparent text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none font-medium"
                 />
@@ -288,8 +333,9 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="relative group overflow-hidden w-full py-3 rounded-full bg-neutral-900 text-white hover:bg-black active:scale-[0.98] font-bold text-xs tracking-wider uppercase shadow-lg shadow-neutral-900/10 transition-all cursor-pointer flex items-center justify-center gap-2 border border-neutral-900"
+                  disabled={busy}
+                  aria-busy={loading}
+                  className="relative group overflow-hidden w-full py-3 rounded-full bg-neutral-900 text-white hover:bg-black active:scale-[0.98] font-bold text-xs tracking-wider uppercase shadow-lg shadow-neutral-900/10 transition-all cursor-pointer flex items-center justify-center gap-2 border border-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <div className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none animate-shine" />
                   {loading ? (
@@ -344,7 +390,10 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
                     Already registered?{' '}
                     <button
                       type="button"
-                      onClick={() => setIsRegisterMode(false)}
+                      onClick={() => {
+                        setIsRegisterMode(false);
+                        setSignUpNotice(null);
+                      }}
                       className="font-bold text-neutral-900 hover:underline cursor-pointer"
                     >
                       Sign In
@@ -355,7 +404,10 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
                     New to omic.hub?{' '}
                     <button
                       type="button"
-                      onClick={() => setIsRegisterMode(true)}
+                      onClick={() => {
+                        setIsRegisterMode(true);
+                        setSignUpNotice(null);
+                      }}
                       className="font-bold text-neutral-900 hover:underline cursor-pointer"
                     >
                       Create Account
@@ -369,8 +421,9 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onLoginSuccess }) => {
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
-                  disabled={loading}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-neutral-300 hover:border-neutral-400 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 hover:text-neutral-900 text-xs font-medium cursor-pointer transition-all shadow-sm"
+                  disabled={busy}
+                  aria-busy={loading}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-neutral-300 hover:border-neutral-400 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 hover:text-neutral-900 text-xs font-medium cursor-pointer transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

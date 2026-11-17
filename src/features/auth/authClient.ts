@@ -5,6 +5,7 @@ import {
   stripAuthCallbackParams,
 } from './callback';
 import {
+  classifySignUpResult,
   resolveInitialSessionWithClient,
   signInWithGoogleWithClient,
   signOutWithClient,
@@ -19,6 +20,8 @@ export interface StudentSignUpInput {
 
 export interface StudentSignUpResult {
   hasSession: boolean;
+  requiresEmailConfirmation: boolean;
+  possibleDuplicateEmail: boolean;
 }
 
 export type AuthStateChangeEvent =
@@ -92,7 +95,7 @@ export async function signUpStudent(
 
   if (error) throw error;
 
-  return { hasSession: Boolean(data.session) };
+  return classifySignUpResult(data);
 }
 
 export async function signInWithPassword(

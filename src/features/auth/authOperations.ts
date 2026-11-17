@@ -42,6 +42,39 @@ export interface GoogleSignInCredentials {
   };
 }
 
+export interface SignUpOutcome {
+  hasSession: boolean;
+  requiresEmailConfirmation: boolean;
+  possibleDuplicateEmail: boolean;
+}
+
+interface SignUpResponse {
+  session: unknown;
+  user: { identities?: unknown[] | null } | null;
+}
+
+/**
+ * Interpret Supabase's anti-enumeration sign-up response.
+ *
+ * When email confirmation is enabled, Supabase can return a user with an empty
+ * `identities` array for an email that already exists instead of an explicit
+ * duplicate error. Callers must use neutral wording for that case so the UI
+ * does not confirm whether an account exists.
+ */
+export function classifySignUpResult(data: SignUpResponse): SignUpOutcome {
+  const identities = data.user?.identities;
+  const possibleDuplicateEmail =
+    Boolean(data.user) &&
+    Array.isArray(identities) &&
+    identities.length === 0;
+
+  return {
+    hasSession: Boolean(data.session),
+    requiresEmailConfirmation: Boolean(data.user) && !data.session,
+    possibleDuplicateEmail,
+  };
+}
+
 export function buildGoogleSignInOptions(
   redirectTo: string,
 ): GoogleSignInCredentials {

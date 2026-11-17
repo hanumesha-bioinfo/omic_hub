@@ -4,6 +4,10 @@ import { useToast } from '../../../shared/ui/Toast';
 import { updatePassword } from '../authClient';
 import { AUTH_MESSAGES } from '../messages';
 import { useAuthAction } from '../useAuthAction';
+import {
+  MIN_PASSWORD_LENGTH,
+  isPasswordLongEnough,
+} from '../validation';
 
 interface ResetPasswordPageProps {
   onComplete: () => void;
@@ -22,8 +26,8 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
   ) => {
     event.preventDefault();
 
-    if (password.length < 8) {
-      showToast(AUTH_MESSAGES.shortNewPassword, 'error');
+    if (!isPasswordLongEnough(password)) {
+      showToast(AUTH_MESSAGES.passwordTooShort, 'error');
       return;
     }
 
@@ -66,9 +70,9 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
                 autoComplete="new-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                minLength={8}
+                minLength={MIN_PASSWORD_LENGTH}
                 required
-                placeholder="At least 8 characters"
+                placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
                 className="w-full rounded-xl border border-neutral-300 px-4 py-3 pr-11 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-200"
               />
               <Lock className="absolute right-3 top-3.5 h-4 w-4 text-neutral-400" />
@@ -84,7 +88,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
-              minLength={8}
+              minLength={MIN_PASSWORD_LENGTH}
               required
               placeholder="Enter the password again"
               className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-200"

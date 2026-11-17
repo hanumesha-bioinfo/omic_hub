@@ -32,7 +32,11 @@ import {
   isDemoRecruiterProfile,
   markDemoRecruiterSession,
 } from './demoRecruiter';
-import { AUTH_MESSAGES, getAuthErrorMessage } from './messages';
+import {
+  AUTH_MESSAGES,
+  getAuthCallbackFailureMessage,
+  getAuthErrorMessage,
+} from './messages';
 import {
   deriveProfileFromAuthUser,
   loadOrCreateProfile,
@@ -277,12 +281,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (callbackError) {
         clearAuthCallbackParams();
         notifyCallbackFailure(
-          getAuthErrorMessage(
-            {
-              code: callbackError.code,
-              message: callbackError.description,
-            },
-            AUTH_MESSAGES.authCallbackFailed,
+          getAuthCallbackFailureMessage(
+            callbackError,
+            passwordRecoveryRef.current,
           ),
         );
       }
@@ -418,6 +419,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         finishWithoutSession();
+
+        // A PKCE/implicit callback that cannot be exchanged (for example a
+        // re-used or cross-browser link) is an incomplete callback, not a
+        // generic session-restore failure. Keep the guidance actionable.
+        if (
+          hasAuthCallback &&
+          (callbackKind === 'pkce' || callbackKind === 'implicit')
+        ) {
+          notifyCallbackFailure(AUTH_MESSAGES.oauthIncomplete);
+          return;
+        }
+
         notifyCallbackFailure(
           getAuthErrorMessage(
             error,
