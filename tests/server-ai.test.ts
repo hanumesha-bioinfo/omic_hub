@@ -4,6 +4,7 @@ import test from 'node:test';
 import { asyncHandler } from '../server/lib/asyncHandler';
 import { errorHandler } from '../server/middleware/error';
 import { createRateLimiter } from '../server/middleware/rateLimit';
+import { firstInvalidField } from '../server/middleware/validate';
 
 async function withServer(handler: express.RequestHandler, run: (base: string) => Promise<void>) {
   const app = express();
@@ -63,4 +64,26 @@ test('rate limiter returns 429 with Retry-After after max requests in the window
     clock += 60_001;
     assert.equal((await fetch(`${base}/limited?user=a`)).status, 200);
   });
+});
+
+test('firstInvalidField rejects wrong types, overlength strings and bad message items', () => {
+  assert.equal(firstInvalidField({ text: 'ok', role: 'dev' }, {
+    text: { type: 'string', required: true, maxLength: 40 },
+    role: { type: 'string', maxLength: 40 },
+  }), null);
+  assert.equal(firstInvalidField({ text: 42 }, {
+    text: { type: 'string', required: true, maxLength: 40 },
+  }), 'text');
+  assert.equal(firstInvalidField({ text: 'x'.repeat(41) }, {
+    text: { type: 'string', required: true, maxLength: 40 },
+  }), 'text');
+  assert.equal(firstInvalidField({ completedSkills: {} }, {
+    completedSkills: { type: 'array', maxItems: 20, item: 'string' },
+  }), 'completedSkills');
+  assert.equal(firstInvalidField({ messages: [{ role: 'user', text: 7 }] }, {
+    messages: { type: 'array', required: true, maxItems: 20, item: 'message' },
+  }), 'messages');
+  assert.equal(firstInvalidField(null, {
+    text: { type: 'string', required: true, maxLength: 40 },
+  }), 'text');
 });
