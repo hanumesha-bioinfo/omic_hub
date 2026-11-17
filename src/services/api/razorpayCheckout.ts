@@ -1,0 +1,63 @@
+import type { CheckoutOpener } from './payments';
+
+const RAZORPAY_SCRIPT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
+
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler?: () => void;
+  modal: { ondismiss: () => void };
+}
+
+interface RazorpayInstance {
+  open: () => void;
+}
+
+interface RazorpayWindow extends Window {
+  Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
+}
+
+function loadScript(): Promise<void> {
+  const existing = document.querySelector<HTMLScriptElement>(
+    `script[src="${RAZORPAY_SCRIPT_URL}"]`,
+  );
+  if (existing?.dataset.loaded === 'true') {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = existing ?? document.createElement('script');
+    script.addEventListener('load', () => {
+      script.dataset.loaded = 'true';
+      resolve();
+    });
+    script.addEventListener('error', () => reject(new Error('Unable to load Razorpay checkout')));
+    if (!existing) {
+      script.src = RAZORPAY_SCRIPT_URL;
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  });
+}
+
+export const loadRazorpayCheckout: CheckoutOpener = async (options, callbacks) => {
+  await loadScript();
+  const Razorpay = (window as RazorpayWindow).Razorpay;
+  if (!Razorpay) {
+    throw new Error('Razorpay checkout is unavailable');
+  }
+
+  new Razorpay({
+    key: options.keyId,
+    amount: options.amountPaise,
+    currency: options.currency,
+    name: options.name,
+    description: options.description,
+    order_id: options.orderId,
+    modal: { ondismiss: callbacks.onClose },
+  }).open();
+};

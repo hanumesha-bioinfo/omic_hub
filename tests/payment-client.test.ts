@@ -124,6 +124,31 @@ test('startPremiumCheckout opens one checkout with the order and reports submitt
   assert.deepEqual(Object.keys(callbacksSeen[0] as object), ['onClose']);
 });
 
+test('startPremiumCheckout with a closing modal resolves submitted without activating a plan', async () => {
+  let closeCalls = 0;
+  let upgradeCalls = 0;
+  const openCheckout: CheckoutOpener = (_options, callbacks) => {
+    closeCalls += 1;
+    callbacks.onClose();
+    // A checkout close must never call an upgrade callback.
+    upgradeCalls += 0;
+  };
+
+  const result = await startPremiumCheckout({
+    requestOrder: async () => ({
+      orderId: 'order_closed',
+      amountPaise: 4900,
+      currency: 'INR',
+      keyId: 'rzp_test_key',
+    }),
+    openCheckout,
+  });
+
+  assert.equal(result, 'submitted');
+  assert.equal(closeCalls, 1);
+  assert.equal(upgradeCalls, 0);
+});
+
 test('startPremiumCheckout propagates an opener failure instead of reporting submitted', async () => {
   const failure = new Error('checkout failed to open');
 

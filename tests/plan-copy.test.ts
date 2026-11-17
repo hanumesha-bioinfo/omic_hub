@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { createPlanAuthority, resolveAuthoritativeTier } from '../src/services/api/planAuthority';
+import type { CheckoutOpener, PaymentOrder, VerifiedPlan } from '../src/services/api/payments';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -78,4 +80,74 @@ test('plan UI prices Free at zero and Premium as a one-time ₹49 charge', () =>
       `${file}: Premium must be stated as a one-time ₹49 charge`,
     );
   }
+});
+
+test('SubscriptionPlanModal has no fake checkout timers, confetti or fake verification copy', () => {
+  const source = readSource('src/components/SubscriptionPlanModal.tsx');
+  assert.doesNotMatch(source, /setTimeout/);
+  assert.doesNotMatch(source, /confetti/);
+  assert.doesNotMatch(source, /Payment verified|verification successful|payment successful/i);
+  assert.doesNotMatch(source, /QRCode|upi_qr|vpa|test card/i);
+});
+
+test('all three plan components route Premium to the shared onCheckout callback', () => {
+  for (const file of planUiFiles) {
+    const source = readSource(file);
+    assert.match(source, /onCheckout/, `${file}: no onCheckout checkout callback`);
+    assert.match(source, /onCheckout\(\)/, `${file}: Premium button does not invoke onCheckout`);
+  }
+});
+
+test('App.tsx reads the server-verified plan and applies its tier before gating', () => {
+  const source = readSource('src/App.tsx');
+  assert.match(source, /fetchVerifiedPlan/, 'App.tsx does not fetch the verified plan');
+  assert.match(source, /resolveAuthoritativeTier/, 'App.tsx does not resolve the authoritative tier');
+  assert.match(source, /applyServerTier/, 'App.tsx does not apply the server tier');
+  assert.match(source, /onCheckout=\{handleCheckout\}/, 'App.tsx does not wire checkout');
+});
+
+test('only an active premium server plan resolves to the premium tier', () => {
+  assert.equal(resolveAuthoritativeTier({ tier: 'premium', active: true }), 'premium');
+  assert.equal(resolveAuthoritativeTier({ tier: 'premium', active: false }), 'free');
+  assert.equal(resolveAuthoritativeTier({ tier: null, active: false }), 'free');
+});
+
+test('a client-side checkout close does not grant premium; only the verified plan does', async () => {
+  const order: PaymentOrder = {
+    orderId: 'order_authority',
+    amountPaise: 4900,
+    currency: 'INR',
+    keyId: 'rzp_test_key',
+  };
+  let upgradeCalls = 0;
+  const applyTier = (tier: string) => {
+    if (tier === 'premium') upgradeCalls += 1;
+  };
+  let plan: VerifiedPlan = { tier: null, active: false };
+  let closes = 0;
+
+  const openCheckout: CheckoutOpener = (_options, callbacks) => {
+    // Simulate the user closing the Razorpay modal without a verified webhook yet.
+    closes += 1;
+    callbacks.onClose();
+  };
+
+  const authority = createPlanAuthority({
+    fetchVerifiedPlan: async () => plan,
+    requestOrder: async () => order,
+    openCheckout,
+  });
+
+  const afterClose = await authority.checkout();
+  assert.equal(closes, 1);
+  assert.equal(afterClose, 'free');
+  applyTier(afterClose);
+  assert.equal(upgradeCalls, 0, 'checkout close must not activate premium');
+
+  // The webhook has now verified payment; the same flow reads an active plan.
+  plan = { tier: 'premium', active: true };
+  const afterVerified = await authority.checkout();
+  assert.equal(afterVerified, 'premium');
+  applyTier(afterVerified);
+  assert.equal(upgradeCalls, 1, 'only the verified active plan may activate premium');
 });

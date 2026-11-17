@@ -4,21 +4,15 @@ import {
   Sparkles,
   Check,
   X,
-  Lock,
   ArrowRight,
-  ShieldCheck,
-  Zap,
-  Star,
-  Flame,
 } from 'lucide-react';
 import { SubscriptionPlanTier, UserProfile } from '../types';
-import confetti from 'canvas-confetti';
-import { useToast } from '../shared/ui/Toast';
 
 export interface FeatureGateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpgrade: (tier: SubscriptionPlanTier) => void;
+  onCheckout: () => Promise<void>;
   user: UserProfile;
   featureName?: string;
   requiredTier?: SubscriptionPlanTier;
@@ -28,29 +22,13 @@ export interface FeatureGateModalProps {
 export const FeatureGateModal: React.FC<FeatureGateModalProps> = ({
   isOpen,
   onClose,
-  onUpgrade,
+  onCheckout,
   user,
   featureName = 'Premium Plan',
   requiredTier = 'premium',
   featureDescription,
 }) => {
-  const { showToast } = useToast();
-
   if (!isOpen) return null;
-
-  const handleSelectUpgrade = (tier: SubscriptionPlanTier) => {
-    confetti({
-      particleCount: 90,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
-    showToast(
-      `Premium (₹49 once) selected. All associated features unlocked.`,
-      'success'
-    );
-    onUpgrade(tier);
-    onClose();
-  };
 
   const comparisonRows = [
     {
@@ -238,7 +216,7 @@ export const FeatureGateModal: React.FC<FeatureGateModalProps> = ({
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <button
               type="button"
-              onClick={() => handleSelectUpgrade('premium')}
+              onClick={() => { void onCheckout(); }}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white font-extrabold text-sm shadow-xl shadow-amber-500/25 transition-all hover:scale-102 active:scale-95 cursor-pointer"
             >
               <Crown className="w-4 h-4 text-amber-200" />

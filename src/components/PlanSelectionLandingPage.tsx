@@ -13,12 +13,12 @@ import {
 } from 'lucide-react';
 import { SubscriptionPlanTier, UserProfile } from '../types';
 import type { ActiveTab } from '../app/navigation';
-import confetti from 'canvas-confetti';
 import { useToast } from '../shared/ui/Toast';
 
 interface PlanSelectionLandingPageProps {
   user: UserProfile;
   onSelectPlan: (plan: SubscriptionPlanTier, targetTab?: ActiveTab) => void;
+  onCheckout: () => Promise<void>;
   isModal?: boolean;
   onCloseModal?: () => void;
   onNavigateTab?: (tab: ActiveTab) => void;
@@ -28,6 +28,7 @@ interface PlanSelectionLandingPageProps {
 export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> = ({
   user,
   onSelectPlan,
+  onCheckout,
   isModal = false,
   onCloseModal,
   onNavigateTab,
@@ -40,11 +41,6 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
 
   const handleSelect = (tier: SubscriptionPlanTier, planName: string, targetTab: ActiveTab = 'builder') => {
-    confetti({
-      particleCount: 75,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
     showToast(`Selected ${planName} plan! Continuing to your calibrated workspace...`, 'success');
     onSelectPlan(tier, targetTab);
   };
@@ -139,13 +135,19 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
               </div>
 
               {/* Action Button: "Your current plan" */}
-              <button
-                type="button"
-                onClick={() => handleSelect('free', 'Free')}
-                className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-sky-100/60 text-sky-950 font-bold text-xs border border-sky-300 transition-colors cursor-pointer mb-6 shadow-2xs"
-              >
-                Your current plan
-              </button>
+              {user.planTier === 'premium' ? (
+                <span className="block w-full py-2.5 text-center text-xs font-semibold text-sky-700 mb-6">
+                  Included with Premium
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleSelect('free', 'Free')}
+                  className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-sky-100/60 text-sky-950 font-bold text-xs border border-sky-300 transition-colors cursor-pointer mb-6 shadow-2xs"
+                >
+                  Your current plan
+                </button>
+              )}
 
               {/* Feature Checklist */}
               <div className="space-y-3 text-xs">
@@ -249,13 +251,19 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
               </div>
 
               {/* Action Button: Choose Premium */}
-              <button
-                type="button"
-                onClick={() => handleSelect('premium', 'Premium')}
-                className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-black text-white font-bold text-xs shadow-sm transition-all cursor-pointer mb-6"
-              >
-                Choose Premium (₹49 once)
-              </button>
+              {user.planTier === 'premium' ? (
+                <span className="block w-full py-2.5 text-center text-xs font-bold text-emerald-700 border border-emerald-200 rounded-xl bg-emerald-50 mb-6">
+                  Premium Active
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { void onCheckout(); }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-black text-white font-bold text-xs shadow-sm transition-all cursor-pointer mb-6"
+                >
+                  Choose Premium (₹49 once)
+                </button>
+              )}
 
               {/* Feature Checklist */}
               <div className="space-y-3 text-xs">

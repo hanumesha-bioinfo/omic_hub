@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ToastProvider, useToast } from './shared/ui/Toast';
 import {
   AuthProvider,
@@ -32,6 +32,9 @@ import {
   DEFAULT_USER,
 } from './services/storage';
 import { UserProfile, ResumeData, JobApplication, Course, ScheduledInterview, ActivityItem, SubscriptionPlanTier } from './types';
+import { createPlanAuthority, resolveAuthoritativeTier } from './services/api/planAuthority';
+import { fetchVerifiedPlan } from './services/api/payments';
+import { loadRazorpayCheckout } from './services/api/razorpayCheckout';
 import { Search, Database, Sparkles, Crown, ArrowRight, Building2, LogOut, LogIn } from 'lucide-react';
 
 function MainApp() {
@@ -64,6 +67,37 @@ function MainApp() {
     requiredTier: 'premium',
   });
   const [profileSettingsTab, setProfileSettingsTab] = useState<'profile' | 'settings'>('profile');
+
+  // Premium is granted only by the server-verified plan endpoint, never by checkout state.
+  const planAuthorityRef = useRef(
+    createPlanAuthority({ openCheckout: loadRazorpayCheckout }),
+  );
+
+  const applyServerTier = (tier: SubscriptionPlanTier) => {
+    setUser((current) => {
+      if (current.planTier === tier) return current;
+      const updated: UserProfile = { ...current, planTier: tier };
+      StorageService.saveUser(updated);
+      return updated;
+    });
+  };
+
+  // Load the authoritative plan once the session is authenticated.
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    let active = true;
+    void fetchVerifiedPlan()
+      .then((plan) => {
+        if (active) applyServerTier(resolveAuthoritativeTier(plan));
+      })
+      .catch(() => {
+        // Keep the existing tier if the server cannot be reached.
+      });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   // Core Data States
   const [resume, setResume] = useState<ResumeData>(() => StorageService.getResume());
@@ -103,8 +137,9 @@ function MainApp() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Handle Plan Selection from Post-Sign-In Landing Page or Modal
+  // Premium is never activated here; only the verified plan endpoint may grant it.
   const handleSelectPlan = (tier: SubscriptionPlanTier, targetTab: ActiveTab = 'builder') => {
+    if (tier === 'premium') return;
     const updatedUser: UserProfile = {
       ...user,
       planTier: tier,
@@ -148,8 +183,9 @@ function MainApp() {
     setIsPlanModalOpen(true);
   };
 
-  // Callback when user upgrades from FeatureGateModal
+  // Callback when user selects a plan locally (free only; premium comes from the server).
   const handleUpgradeFromGate = (tier: SubscriptionPlanTier) => {
+    if (tier === 'premium') return;
     const updatedUser: UserProfile = {
       ...user,
       planTier: tier,
@@ -169,6 +205,18 @@ function MainApp() {
 
     if (gatedFeatureInfo.targetTab) {
       setActiveTab(gatedFeatureInfo.targetTab);
+    }
+  };
+
+  // Open real Razorpay checkout; on close we re-read the server, which alone
+  // decides whether premium becomes active.
+  const handleCheckout = async () => {
+    try {
+      const tier = await planAuthorityRef.current.checkout();
+      applyServerTier(tier);
+    } catch (error) {
+      console.error('Premium checkout failed', error);
+      showToast('Could not start payment. Please try again.', 'error');
     }
   };
 
@@ -293,8 +341,13 @@ function MainApp() {
       <PlanSelectionLandingPage
         user={user}
         onSelectPlan={(tier) => handleSelectPlan(tier, 'builder')}
+        onCheckout={handleCheckout}
         onNavigateTab={() => {
-          handleSelectPlan(user.planTier || 'free', 'builder');
+          if (user.planTier === 'premium') {
+            setActiveTab('builder');
+          } else {
+            handleSelectPlan('free', 'builder');
+          }
         }}
       />
     );
@@ -482,6 +535,7 @@ function MainApp() {
                   handleSelectPlan(tier, 'builder');
                   setActiveTab('builder');
                 }}
+                onCheckout={handleCheckout}
                 onNavigateTab={() => setActiveTab('builder')}
                 isTabMode={true}
               />
@@ -552,7 +606,7 @@ function MainApp() {
         initialTab={profileSettingsTab}
       />
 
-      {/* Clean Modal Dialog for Subscription Plans with Razorpay / UPI Gateway */}
+      {/* Subscription Plans with real Razorpay checkout */}
       <SubscriptionPlanModal
         isOpen={isPlanModalOpen}
         onClose={() => setIsPlanModalOpen(false)}
@@ -560,6 +614,7 @@ function MainApp() {
           handleUpgradeFromGate(tier);
           setIsPlanModalOpen(false);
         }}
+        onCheckout={handleCheckout}
         user={user}
         initialSelectedTier={gatedFeatureInfo.requiredTier || 'premium'}
         triggeredByFeature={gatedFeatureInfo.name}
@@ -570,6 +625,7 @@ function MainApp() {
         isOpen={isFeatureGateOpen}
         onClose={() => setIsFeatureGateOpen(false)}
         onUpgrade={handleUpgradeFromGate}
+        onCheckout={handleCheckout}
         user={user}
         featureName={gatedFeatureInfo.name}
         requiredTier={gatedFeatureInfo.requiredTier}
