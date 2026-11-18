@@ -201,7 +201,7 @@ export const PlanSelectionLandingPage: React.FC<PlanSelectionLandingPageProps> =
                     <Crown className="w-4 h-4 text-brand-600" />
                     <span>Premium</span>
                   </h3>
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white font-black text-[10px] uppercase tracking-wider shadow-xs">
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-700 text-white font-black text-[10px] uppercase tracking-wider shadow-xs">
                     POPULAR
                   </span>
                 </div>

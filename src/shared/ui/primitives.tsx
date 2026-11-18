@@ -11,7 +11,7 @@ const buttonVariants: Record<ButtonVariant, string> = {
   primary: 'bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500',
   secondary: 'bg-white text-neutral-800 border border-neutral-200 hover:bg-neutral-50 focus:ring-brand-500',
   ghost: 'bg-transparent text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 focus:ring-brand-500',
-  premium: 'bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-500',
+  premium: 'bg-amber-700 text-white hover:bg-amber-800 focus:ring-amber-600',
   danger: 'bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-500',
 };
 

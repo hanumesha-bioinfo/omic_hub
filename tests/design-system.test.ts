@@ -130,3 +130,13 @@ test('env example lists every server and client variable the code reads', () => 
 test('server no longer logs the legacy TalentForge name', () => {
   assert.doesNotMatch(readSource('server/index.ts'), /TalentForge/);
 });
+
+test('premium badge and button use legible dark-amber text contrast', () => {
+  const pricing = readSource('src/components/PlanSelectionLandingPage.tsx');
+  assert.doesNotMatch(pricing, /bg-amber-500 text-white/, 'POPULAR badge must not be white on amber-500');
+  assert.match(pricing, /bg-amber-700 text-white/, 'POPULAR badge should use dark amber with white text');
+
+  const primitives = readSource('src/shared/ui/primitives.tsx');
+  assert.doesNotMatch(primitives, /bg-amber-500 text-white/, 'premium button variant must not be white on amber-500');
+  assert.match(primitives, /bg-amber-700 text-white/, 'premium button variant should use dark amber with white text');
+});
