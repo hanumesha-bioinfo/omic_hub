@@ -237,12 +237,12 @@ export const SignInPage: React.FC = () => {
   const busy = loading || recruiterAction.isLoading || resetLoading;
 
   return (
-    <div className="min-h-screen w-full bg-[#f8f9fc] text-neutral-900 flex flex-col items-center justify-center p-4 sm:p-6 font-sans relative selection:bg-neutral-900 selection:text-white overflow-x-hidden">
+    <div className="min-h-screen w-full bg-neutral-50 text-neutral-900 flex flex-col items-center justify-center p-4 sm:p-6 font-sans relative selection:bg-brand-600 selection:text-white overflow-x-hidden">
       
       {/* Ambient background soft pearl lighting on clean white canvas */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-neutral-200/50 rounded-full blur-[140px]" />
-        <div className="absolute bottom-10 right-1/4 w-[600px] h-[400px] bg-slate-200/40 rounded-full blur-[160px]" />
+        <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-bio-200/40 rounded-full blur-[140px]" />
+        <div className="absolute bottom-10 right-1/4 w-[600px] h-[400px] bg-brand-200/30 rounded-full blur-[160px]" />
       </div>
 
       {/* Top Floating Portal Switcher: Liquid Glass Capsule */}
@@ -252,7 +252,7 @@ export const SignInPage: React.FC = () => {
           onClick={() => setPortalType('student')}
           className={`py-2 px-5 sm:px-6 rounded-full text-xs font-bold tracking-wide transition-all cursor-pointer flex items-center gap-2 ${
             !isRecruiter
-              ? 'bg-neutral-900 text-white shadow-md scale-100'
+              ? 'bg-brand-600 text-white shadow-md scale-100'
               : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100'
           }`}
         >
@@ -265,7 +265,7 @@ export const SignInPage: React.FC = () => {
           onClick={() => setPortalType('recruiter')}
           className={`py-2 px-5 sm:px-6 rounded-full text-xs font-bold tracking-wide transition-all cursor-pointer flex items-center gap-2 ${
             isRecruiter
-              ? 'bg-neutral-900 text-white shadow-md scale-100'
+              ? 'bg-brand-600 text-white shadow-md scale-100'
               : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100'
           }`}
         >
@@ -286,8 +286,8 @@ export const SignInPage: React.FC = () => {
         {/* ============================================================== */}
         <div className="w-full md:w-1/2 p-8 sm:p-12 flex flex-col justify-center bg-white text-neutral-900 z-10 border-b md:border-b-0 md:border-r border-neutral-200/80">
           <div className="mb-6 space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-700 text-[11px] font-mono font-semibold tracking-wide uppercase">
-              <ShieldCheck className="w-3.5 h-3.5 text-neutral-900" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-bio-50 border border-bio-200 text-bio-700 text-[11px] font-mono font-semibold tracking-wide uppercase">
+              <ShieldCheck className="w-3.5 h-3.5 text-bio-600" />
               <span>Bioinformatics Talent Node</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-neutral-900 tracking-tight">
@@ -301,7 +301,7 @@ export const SignInPage: React.FC = () => {
                     ? 'Create Account'
                     : 'Student Login'}
             </h1>
-            <div className="w-10 h-1 bg-neutral-900 rounded-full" />
+            <div className="w-10 h-1 bg-gradient-to-r from-bio-500 to-brand-600 rounded-full" />
             <p className="text-xs text-neutral-500 pt-1 leading-relaxed">
               {isRecruiter
                 ? 'Sign in to access verified candidate pipelines and manage job openings'
@@ -391,7 +391,7 @@ export const SignInPage: React.FC = () => {
                   type="submit"
                   disabled={busy}
                   aria-busy={loading}
-                  className="relative group overflow-hidden w-full py-3 rounded-full bg-neutral-900 text-white hover:bg-black active:scale-[0.98] font-bold text-xs tracking-wider uppercase shadow-lg shadow-neutral-900/10 transition-all cursor-pointer flex items-center justify-center gap-2 border border-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="relative group overflow-hidden w-full py-3 rounded-full bg-brand-600 text-white hover:bg-brand-700 active:scale-[0.98] font-bold text-xs tracking-wider uppercase shadow-lg shadow-brand-600/20 transition-all cursor-pointer flex items-center justify-center gap-2 border border-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <div className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none animate-shine" />
                   {loading ? (
@@ -425,7 +425,7 @@ export const SignInPage: React.FC = () => {
                     type="button"
                     onClick={() => void handleForgotPassword()}
                     disabled={resetLoading}
-                    className="w-full rounded-full bg-neutral-900 px-4 py-2 text-xs font-bold text-white disabled:opacity-60"
+                    className="w-full rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-60"
                   >
                     {resetLoading ? 'Sending…' : 'Send reset email'}
                   </button>
@@ -559,7 +559,7 @@ export const SignInPage: React.FC = () => {
                   type="submit"
                   disabled={busy}
                   aria-busy={recruiterAction.isLoading}
-                  className="relative group overflow-hidden w-full py-3 rounded-full bg-neutral-900 text-white hover:bg-black active:scale-[0.98] font-bold text-xs tracking-wider uppercase shadow-lg shadow-neutral-900/10 transition-all cursor-pointer flex items-center justify-center gap-2 border border-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="relative group overflow-hidden w-full py-3 rounded-full bg-brand-600 text-white hover:bg-brand-700 active:scale-[0.98] font-bold text-xs tracking-wider uppercase shadow-lg shadow-brand-600/20 transition-all cursor-pointer flex items-center justify-center gap-2 border border-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <div className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none animate-shine" />
                   {recruiterAction.isLoading ? (
@@ -617,10 +617,10 @@ export const SignInPage: React.FC = () => {
         {/* RIGHT COMBINATION COLOR: DEEP OBSIDIAN MIDNIGHT NAVY (Dark)   */}
         {/* Rich deep dark side contrasting against the pure white left side */}
         {/* ============================================================== */}
-        <div className="w-full md:w-1/2 p-8 sm:p-12 flex flex-col justify-center bg-[#0a0f1d] text-white relative overflow-hidden">
-          {/* Subtle ambient deep navy reflections */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-slate-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="w-full md:w-1/2 p-8 sm:p-12 flex flex-col justify-center bg-neutral-950 text-white relative overflow-hidden">
+          {/* Subtle ambient brand reflections */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-bio-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 space-y-5 max-w-sm mx-auto text-left">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs font-mono text-neutral-300">
@@ -632,7 +632,7 @@ export const SignInPage: React.FC = () => {
               {isRecruiter ? 'RECRUITER WORKSPACE' : 'BIOINFORMATICS COMMUNITY'}
             </h2>
 
-            <div className="w-10 h-1 bg-white rounded-full" />
+            <div className="w-10 h-1 bg-gradient-to-r from-bio-400 to-brand-400 rounded-full" />
 
             <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed">
               {isRecruiter
@@ -644,7 +644,7 @@ export const SignInPage: React.FC = () => {
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.05] border border-white/10 backdrop-blur-md">
                 <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-4 h-4 text-white" />
+                  <ShieldCheck className="w-4 h-4 text-bio-400" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white">Verified ATS Engine</h4>
@@ -654,7 +654,7 @@ export const SignInPage: React.FC = () => {
 
               <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.05] border border-white/10 backdrop-blur-md">
                 <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                  <Building2 className="w-4 h-4 text-white" />
+                  <Building2 className="w-4 h-4 text-brand-400" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white">Direct Employer Matching</h4>

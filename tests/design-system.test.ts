@@ -72,3 +72,10 @@ test('header preserves no-print and responsive layout classes', () => {
   assert.match(topHeaderSource, /no-print/);
   assert.match(topHeaderSource, /backdrop-blur/);
 });
+
+test('sign-in and pricing views use brand accents', () => {
+  const signIn = readSource('src/features/auth/components/SignInPage.tsx');
+  const pricing = readSource('src/components/PlanSelectionLandingPage.tsx');
+  assert.match(signIn, /(brand|bio|ai)-[0-9]/);
+  assert.match(pricing, /(brand|bio|ai)-[0-9]/);
+});
