@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -85,4 +85,48 @@ test('student and recruiter dashboards use brand accents', () => {
   const recruiter = readSource('src/components/Recruiter/RecruiterDashboardView.tsx');
   assert.match(student, /(brand|bio|ai)-[0-9]/);
   assert.match(recruiter, /(brand|bio|ai)-[0-9]/);
+});
+
+test('legacy unused source files are removed', () => {
+  for (const file of [
+    'src/App.tsx.backup',
+    'src/App.tsx.before-recovery',
+    'src/components/SignInPage.tsx.bak',
+    'src/components/SignInPage.tsx.backup',
+    'src/components/Navbar.tsx',
+  ]) {
+    assert.equal(existsSync(path.join(repoRoot, file)), false, `${file} should be removed`);
+  }
+});
+
+test('package is named omic-hub', () => {
+  const pkg = JSON.parse(readSource('package.json')) as { name: string };
+  assert.equal(pkg.name, 'omic-hub');
+});
+
+test('README documents OMIC HUB setup instead of AI Studio', () => {
+  const readme = readSource('README.md');
+  assert.doesNotMatch(readme, /AI Studio/);
+  for (const heading of ['OMIC HUB', 'Quick start', 'Environment', 'Deploy']) {
+    assert.match(readme, new RegExp(heading, 'i'), `README should contain ${heading}`);
+  }
+});
+
+test('env example lists every server and client variable the code reads', () => {
+  const env = readSource('.env.example');
+  for (const key of [
+    'PUBLIC_APP_URL',
+    'PORT',
+    'HOST',
+    'CERTIFICATE_SIGNING_SECRET',
+    'VITE_SUPABASE_URL',
+    'VITE_SUPABASE_PUBLISHABLE_KEY',
+    'VITE_API_BASE_URL',
+  ]) {
+    assert.match(env, new RegExp(key), `.env.example should list ${key}`);
+  }
+});
+
+test('server no longer logs the legacy TalentForge name', () => {
+  assert.doesNotMatch(readSource('server/index.ts'), /TalentForge/);
 });

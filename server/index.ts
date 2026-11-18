@@ -21,7 +21,7 @@ async function startServer() {
   }
 
   app.listen(PORT, HOST, () => {
-    console.log(`TalentForge AI server running on http://${HOST}:${PORT}`);
+    console.log(`OMIC HUB server running on http://${HOST}:${PORT}`);
   });
 }
 
