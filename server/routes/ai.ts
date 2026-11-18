@@ -393,7 +393,9 @@ Provide strictly valid JSON with this exact structure:
     deps.certs &&
     deps.certs.enabled &&
     result.isFallback === false &&
-    Number.isFinite(result.overallScore)
+    Number.isFinite(result.overallScore) &&
+    (result.overallScore as number) >= 0 &&
+    (result.overallScore as number) <= 100
   ) {
     result.assessmentToken = deps.certs.issueAssessment({
       sub: (req as AuthenticatedRequest).auth!.userId,

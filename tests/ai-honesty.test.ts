@@ -95,6 +95,7 @@ test('no fabricated certificate identifiers or seeded verified credentials remai
   assert.ok(!read('src/components/ResumeBuilder/ResumeBuilderView.tsx').includes('Math.floor(10000 + Math.random()'));
   assert.ok(!read('src/components/ResumeBuilder/ResumeBuilderView.tsx').includes('EBI-NF-9921'));
   assert.ok(!read('src/components/Certifications/CertificationsView.tsx').includes('VERIFIED_ACADEMIC_CERTS'));
+  assert.ok(!read('src/types.ts').includes('OMI-CERT-83921'), 'no leftover hardcoded certificate id examples');
   assert.match(read('src/services/storage/defaults.ts'), /INITIAL_CERTIFIED_BADGES:\s*CertifiedSkillBadge\[\]\s*=\s*\[\]/);
   assert.match(read('src/services/storage/keys.ts'), /CERTIFIED_BADGES:\s*'tf_certified_badges_v2'/);
 });
@@ -105,4 +106,17 @@ test('verification claims are conditional on genuine results', () => {
   assert.ok(!interview.includes('OMI-CERT-${randomCode}'));
   const news = read('src/components/Dashboard/BioinformaticsNews.tsx');
   assert.ok(news.includes('groundedInsight.grounded'));
+});
+
+test('no verification label is shown for fallback AI output', () => {
+  const analyzer = read('src/components/ResumeAnalyzer/ResumeAnalyzerView.tsx');
+  assert.ok(
+    /isFallback\s*===\s*true\s*\?[\s\S]{0,160}Verified Matching Strengths:/.test(analyzer),
+    'Verified Matching Strengths must be conditional on a genuine result',
+  );
+  const interview = read('src/components/MockInterview/MockInterviewView.tsx');
+  assert.ok(
+    /currentEvaluation\.isFallback\s*!==\s*true[\s\S]{0,220}Credential Verified/.test(interview),
+    'Credential Verified must be gated on a genuine evaluation',
+  );
 });

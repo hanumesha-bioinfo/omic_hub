@@ -762,7 +762,9 @@ export const MockInterviewView: React.FC<MockInterviewViewProps> = ({
                         >
                           {currentEvaluation.overallScore >= 85 ? 'Strong Hire' : 'Lean Hire'}
                         </span>
-                        {currentEvaluation.overallScore >= 80 && latestAwardedBadge != null && (
+                        {currentEvaluation.overallScore >= 80 &&
+                          currentEvaluation.isFallback !== true &&
+                          latestAwardedBadge != null && (
                           <span className="block text-[10px] text-indigo-400 font-bold mt-1">
                             Credential Verified 🏆
                           </span>

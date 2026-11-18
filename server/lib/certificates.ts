@@ -105,6 +105,9 @@ export function createCertificateService(options: {
     },
 
     verify(token) {
+      // Fail closed: with no signing secret configured, nothing is verifiable —
+      // otherwise an empty HMAC key would let anyone forge a "Verified" token.
+      if (secret.length === 0) return null;
       try {
         const separator = token.lastIndexOf('.');
         if (separator < 1) return null;

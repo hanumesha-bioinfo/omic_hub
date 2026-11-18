@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import express from 'express';
 import test from 'node:test';
 import { createCertificateService } from '../server/lib/certificates';
@@ -78,13 +80,15 @@ test('issue rejects low scores, wrong subject, mismatched skill and missing secr
   const certs = createCertificateService({ secret: 'test-secret', now: () => 1_000_000 });
   const low = certs.issueAssessment({ sub: 'u1', qHash: 'q', aHash: 'a', score: 70, skill: 'Nextflow' });
   const good = certs.issueAssessment({ sub: 'other', qHash: 'q', aHash: 'a', score: 92, skill: 'Nextflow' });
+  // Valid token for the authenticated subject — required to reach the skill comparison.
+  const matchingSubject = certs.issueAssessment({ sub: 'u1', qHash: 'q', aHash: 'a', score: 92, skill: 'Nextflow' });
   await withCerts(certs, async (base) => {
     const post = (body: unknown) => fetch(`${base}/api/certificates/issue`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
     assert.equal((await post({ assessmentToken: low })).status, 403);
     assert.equal((await post({ assessmentToken: good })).status, 403);
-    assert.equal((await post({ assessmentToken: good.replace('other', 'u1'), skillName: 'other-skill' })).status, 403);
+    assert.equal((await post({ assessmentToken: matchingSubject, skillName: 'other-skill' })).status, 403);
   });
   await withCerts(createCertificateService({ secret: '' }), async (base) => {
     const response = await fetch(`${base}/api/certificates/issue`, {
@@ -92,6 +96,37 @@ test('issue rejects low scores, wrong subject, mismatched skill and missing secr
     });
     assert.equal(response.status, 503);
   });
+});
+
+test('an unset signing secret fails closed for verification as well as issuance', async () => {
+  const empty = createCertificateService({ secret: '' });
+  const token = empty.issueCertificate({
+    sub: 'u1', skill: 'Nextflow', score: 92, issuedDate: '2026-11-18',
+  }).token;
+  // A disabled service must not verify even a token it signed itself.
+  assert.equal(empty.verify(token), null);
+  await withCerts(empty, async (base) => {
+    const verified = await (await fetch(`${base}/verify/cert/${token}`)).json() as any;
+    assert.equal(verified.valid, false);
+  });
+});
+
+test('certificate issuance rejects scores outside 0..100', async () => {
+  const certs = createCertificateService({ secret: 'test-secret', now: () => 1_000_000 });
+  const tooHigh = certs.issueAssessment({ sub: 'u1', qHash: 'q', aHash: 'a', score: 999, skill: 'Nextflow' });
+  await withCerts(certs, async (base) => {
+    const response = await fetch(`${base}/api/certificates/issue`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assessmentToken: tooHigh }),
+    });
+    assert.equal(response.status, 403);
+  });
+});
+
+test('assessment minting guards against out-of-range scores', () => {
+  const ai = readFileSync(path.resolve('server/routes/ai.ts'), 'utf8');
+  assert.match(ai, /overallScore[^;]{0,40}>=\s*0/);
+  assert.match(ai, /overallScore[^;]{0,40}<=\s*100/);
 });
 
 test('fallback evaluations never carry an assessment token', async () => {

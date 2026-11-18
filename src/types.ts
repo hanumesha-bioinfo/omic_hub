@@ -443,7 +443,7 @@ export interface CertifiedSkillBadge {
   category: string;
   score: number; // e.g. 92
   issuedDate: string;
-  verificationId: string; // e.g. "OMI-CERT-83921"
+  verificationId: string; // server-issued verification identifier
   verificationUrl: string;
   level: 'Certified Professional' | 'Master Specialist' | 'Executive Lead' | 'Bar-Raiser Master';
   status: 'Verified';

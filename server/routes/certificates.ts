@@ -46,8 +46,8 @@ export function createCertificateRouter(deps: CertificateRouterDeps): Router {
       if (claims.sub !== req.auth?.userId) {
         return res.status(403).json({ error: 'Assessment belongs to another user' });
       }
-      if (claims.score < 80) {
-        return res.status(403).json({ error: 'Assessment score is below the certification threshold' });
+      if (!Number.isFinite(claims.score) || claims.score < 80 || claims.score > 100) {
+        return res.status(403).json({ error: 'Assessment score is outside the certification range' });
       }
 
       const skillName = claims.skill.trim();
@@ -87,6 +87,9 @@ export function createCertificateRouter(deps: CertificateRouterDeps): Router {
   );
 
   router.get('/verify/cert/:token', (req, res) => {
+    if (!deps.certs.enabled) {
+      return res.status(200).json({ valid: false });
+    }
     const claims = deps.certs.verify(req.params.token);
     if (!claims || claims.kind !== 'certificate') {
       return res.status(200).json({ valid: false });

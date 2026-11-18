@@ -362,7 +362,9 @@ Databases: ${currentResume.skills.toolsAndDatabases.join(', ')}
                 <div className="space-y-3 text-xs">
                   <div>
                     <span className="text-slate-400 font-semibold block mb-2">
-                      Verified Matching Strengths:
+                      {analysisResult.isFallback === true
+                        ? 'Sample Matching Strengths:'
+                        : 'Verified Matching Strengths:'}
                     </span>
                     <div className="flex flex-wrap gap-2">
                       {analysisResult.topMatchingSkills.map((sk, i) => (
