@@ -242,7 +242,11 @@ export const SkillPathsView: React.FC<SkillPathsViewProps> = ({
         'AlphaFold 3 & Molecular Docking',
       ]);
       setCustomPlan(data);
-      showToast('Custom 4-Phase Career Pathway Generated!', 'success');
+      if (data.isFallback === true) {
+        showToast('Sample pathway generated — AI is currently unavailable.', 'info');
+      } else {
+        showToast('Custom 4-Phase Career Pathway Generated!', 'success');
+      }
     } catch {
       showToast('Failed to generate pathway.', 'error');
     } finally {
@@ -836,6 +840,11 @@ export const SkillPathsView: React.FC<SkillPathsViewProps> = ({
             {/* Render Custom Plan Result */}
             {customPlan && (
               <div className="pt-4 border-t border-neutral-200 space-y-4 animate-in fade-in">
+                {customPlan.isFallback === true && (
+                  <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 text-xs font-semibold">
+                    Sample content — AI unavailable. This pathway is illustrative, not personalized.
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-neutral-900 uppercase tracking-wider">
                     {customPlan.recommendedRoleTitle || customPlan.targetRoleTitle || 'Personalized Computational Biology Blueprint'}

@@ -413,6 +413,7 @@ export interface ScheduledInterview {
 
 export interface ResumeAnalysisResult {
   overallScore: number;
+  isFallback?: boolean;
   atsCompatibility: number;
   quantifiableImpactScore: number;
   brevityAndStyleScore: number;

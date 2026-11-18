@@ -1220,7 +1220,7 @@ Databases & Tools: ${resume.skills.toolsAndDatabases.join(', ')}
                       name: 'NGS Pipeline Architecture & GATK 4 Secondary Analysis',
                       issuer: 'Broad Institute / Omic Hub',
                       date: '2026-09',
-                      credentialId: `OMI-CERT-${Math.floor(10000 + Math.random() * 90000)}`,
+                      credentialId: '',
                     };
                     updateResume({ ...resume, certifications: [newCert, ...resume.certifications] });
                     showToast('Added certification', 'info');
@@ -1243,7 +1243,7 @@ Databases & Tools: ${resume.skills.toolsAndDatabases.join(', ')}
                         name: 'Nextflow & nf-core Reproducible Genomics Workflows',
                         issuer: 'EMBL-EBI',
                         date: '2026-08',
-                        credentialId: 'EBI-NF-9921',
+                        credentialId: '',
                       };
                       updateResume({ ...resume, certifications: [newCert] });
                     }}

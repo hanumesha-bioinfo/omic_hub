@@ -85,3 +85,24 @@ test('issueCertificate posts the assessment token with a bearer token', async ()
   assert.equal(new Headers(calls[0].headers).get('Authorization'), 'Bearer t');
   assert.deepEqual(JSON.parse(String(calls[0].body)), { assessmentToken: 'a.b' });
 });
+
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
+const read = (p: string) => readFileSync(path.resolve(p), 'utf8');
+
+test('no fabricated certificate identifiers or seeded verified credentials remain', () => {
+  assert.ok(!read('src/components/ResumeBuilder/ResumeBuilderView.tsx').includes('Math.floor(10000 + Math.random()'));
+  assert.ok(!read('src/components/ResumeBuilder/ResumeBuilderView.tsx').includes('EBI-NF-9921'));
+  assert.ok(!read('src/components/Certifications/CertificationsView.tsx').includes('VERIFIED_ACADEMIC_CERTS'));
+  assert.match(read('src/services/storage/defaults.ts'), /INITIAL_CERTIFIED_BADGES:\s*CertifiedSkillBadge\[\]\s*=\s*\[\]/);
+  assert.match(read('src/services/storage/keys.ts'), /CERTIFIED_BADGES:\s*'tf_certified_badges_v2'/);
+});
+
+test('verification claims are conditional on genuine results', () => {
+  const interview = read('src/components/MockInterview/MockInterviewView.tsx');
+  assert.ok(interview.includes('issueCertificate('));
+  assert.ok(!interview.includes('OMI-CERT-${randomCode}'));
+  const news = read('src/components/Dashboard/BioinformaticsNews.tsx');
+  assert.ok(news.includes('groundedInsight.grounded'));
+});

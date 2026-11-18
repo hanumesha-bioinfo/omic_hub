@@ -108,6 +108,12 @@ export const AIBulletImproverModal: React.FC<AIBulletImproverModalProps> = ({
           {/* Results Display */}
           {result && (
             <div className="space-y-4 pt-2">
+              {result.isFallback === true && (
+                <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                  Sample content — AI unavailable. The score and suggestions above are illustrative, not a real analysis.
+                </div>
+              )}
+
               {/* Score & Diagnostics */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-black border border-neutral-800">
                 <div className="flex items-center gap-3">

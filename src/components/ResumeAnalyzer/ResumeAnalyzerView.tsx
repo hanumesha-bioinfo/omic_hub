@@ -224,7 +224,12 @@ Databases: ${currentResume.skills.toolsAndDatabases.join(', ')}
         <div className="lg:col-span-7 space-y-6">
           {analysisResult ? (
             <div className="space-y-6">
-              
+              {analysisResult.isFallback === true && (
+                <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                  Sample content — AI unavailable. The score and analysis above are illustrative, not a real analysis.
+                </div>
+              )}
+
               {/* Scorecard Hero */}
               <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40 border border-slate-800 shadow-xl space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

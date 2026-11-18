@@ -67,6 +67,7 @@ export const BioinformaticsNews: React.FC<BioinformaticsNewsProps> = ({ onNaviga
     text: string;
     sources: { title: string; uri: string }[];
     grounded: boolean;
+    isFallback?: boolean;
   } | null>(null);
   const [isGroundingLoading, setIsGroundingLoading] = useState(false);
 
@@ -261,54 +262,66 @@ export const BioinformaticsNews: React.FC<BioinformaticsNewsProps> = ({ onNaviga
           </button>
         </div>
 
-        {/* Verified Google Search Grounding Card */}
+        {/* Google Search Grounding Card — verification labels only on genuine grounded results */}
         {groundedInsight && (
-          <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-200 text-neutral-800 space-y-3 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between border-b border-neutral-200 pb-2">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-neutral-800" />
-                <span className="text-xs font-bold text-neutral-900">
-                  Google Search Grounded Intelligence (Gemini 3.5 Flash)
-                </span>
-                <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                  Real-time Grounded
-                </span>
+          groundedInsight.grounded === true && groundedInsight.isFallback !== true ? (
+            <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-200 text-neutral-800 space-y-3 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between border-b border-neutral-200 pb-2">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-neutral-800" />
+                  <span className="text-xs font-bold text-neutral-900">
+                    Google Search Grounded Intelligence (Gemini 3.5 Flash)
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    Real-time Grounded
+                  </span>
+                </div>
+                <button
+                  onClick={() => setGroundedInsight(null)}
+                  className="text-xs text-neutral-400 hover:text-neutral-700 font-mono"
+                >
+                  ✕ Close
+                </button>
               </div>
+
+              <p className="text-xs leading-relaxed text-neutral-700 whitespace-pre-line">
+                {groundedInsight.text}
+              </p>
+
+              {groundedInsight.sources && groundedInsight.sources.length > 0 && (
+                <div className="pt-2 border-t border-neutral-200">
+                  <span className="text-[11px] font-bold text-neutral-500 block mb-1.5 font-mono uppercase tracking-wider">
+                    Verified Grounding Sources:
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {groundedInsight.sources.map((s, idx) => (
+                      <a
+                        key={idx}
+                        href={s.uri}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-neutral-200 text-[11px] text-neutral-700 hover:text-neutral-900 transition-colors"
+                      >
+                        <Globe2 className="w-3 h-3 text-neutral-500" />
+                        <span className="truncate max-w-[200px]">{s.title}</span>
+                        <ExternalLink className="w-2.5 h-2.5 text-neutral-400" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold animate-in fade-in duration-200 flex items-center justify-between gap-3">
+              <span>Live search unavailable — try again.</span>
               <button
                 onClick={() => setGroundedInsight(null)}
-                className="text-xs text-neutral-400 hover:text-neutral-700 font-mono"
+                className="text-xs text-amber-700 hover:text-amber-900 font-mono shrink-0"
               >
                 ✕ Close
               </button>
             </div>
-
-            <p className="text-xs leading-relaxed text-neutral-700 whitespace-pre-line">
-              {groundedInsight.text}
-            </p>
-
-            {groundedInsight.sources && groundedInsight.sources.length > 0 && (
-              <div className="pt-2 border-t border-neutral-200">
-                <span className="text-[11px] font-bold text-neutral-500 block mb-1.5 font-mono uppercase tracking-wider">
-                  Verified Grounding Sources:
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {groundedInsight.sources.map((s, idx) => (
-                    <a
-                      key={idx}
-                      href={s.uri}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-neutral-200 text-[11px] text-neutral-700 hover:text-neutral-900 transition-colors"
-                    >
-                      <Globe2 className="w-3 h-3 text-neutral-500" />
-                      <span className="truncate max-w-[200px]">{s.title}</span>
-                      <ExternalLink className="w-2.5 h-2.5 text-neutral-400" />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          )
         )}
 
         {/* Searching Status Effect Indicator */}

@@ -39,8 +39,10 @@ import {
   CertifiedSkillBadge,
   TrainingProgram,
   CompanyReferral,
+  MockEvaluationResult,
 } from '../../types';
 import { generateMockQuestions, evaluateMockResponse } from '../../services/api';
+import { issueCertificate } from '../../services/api/certificates';
 import { StorageService } from '../../services/storage';
 import { useToast } from '../../shared/ui/Toast';
 import confetti from 'canvas-confetti';
@@ -178,7 +180,7 @@ export const MockInterviewView: React.FC<MockInterviewViewProps> = ({
     const currentQuestion = questions[currentQIndex]?.question || 'Technical Problem';
     setEvaluating(true);
     try {
-      const evalData = await evaluateMockResponse(
+      const evalData: MockEvaluationResult = await evaluateMockResponse(
         currentQuestion,
         candidateAnswer,
         roleInput,
@@ -187,46 +189,28 @@ export const MockInterviewView: React.FC<MockInterviewViewProps> = ({
       );
       setCurrentEvaluation(evalData);
 
-      // Check for certified skill passing threshold (score >= 80)
-      if (evalData.overallScore >= 80) {
-        confetti({ particleCount: 65, spread: 75, origin: { y: 0.6 } });
+      // A certificate is only minted by the server from a genuine evaluation.
+      if (evalData.overallScore >= 80 && evalData.assessmentToken) {
+        try {
+          const serverBadge = await issueCertificate({
+            assessmentToken: evalData.assessmentToken,
+            skillName: testedSkill,
+          });
+          confetti({ particleCount: 65, spread: 75, origin: { y: 0.6 } });
 
-        const randomCode = Math.floor(10000 + Math.random() * 90000);
-        const newBadge: CertifiedSkillBadge = {
-          id: `badge_${Date.now()}`,
-          skillName: testedSkill,
-          category: questions[currentQIndex]?.category || 'Core Engineering Architecture',
-          score: evalData.overallScore,
-          issuedDate: new Date().toISOString().slice(0, 10),
-          verificationId: `OMI-CERT-${randomCode}`,
-          verificationUrl: `https://omichub.ai/verify/cert/OMI-CERT-${randomCode}`,
-          level:
-            evalData.overallScore >= 92
-              ? 'Certified Professional'
-              : evalData.overallScore >= 85
-              ? 'Certified Professional'
-              : 'Certified Professional',
-          status: 'Verified',
-          assessedAreas:
-            questions[currentQIndex]?.keyEvaluationPoints || [
-              'Production Architecture',
-              'Performance Benchmarking',
-              'Trade-off Analysis',
-            ],
-          interviewerLens:
-            questions[currentQIndex]?.context ||
-            `Assessed against Tier-1 computational biology standards with a composite score of ${evalData.overallScore}%.`,
-          addedToResume: false,
-        };
+          const updatedBadges = StorageService.addCertifiedBadge(serverBadge);
+          setCertifiedBadges(updatedBadges);
+          setLatestAwardedBadge(serverBadge);
 
-        const updatedBadges = StorageService.addCertifiedBadge(newBadge);
-        setCertifiedBadges(updatedBadges);
-        setLatestAwardedBadge(newBadge);
-
-        showToast(
-          `Technical Certification Passed! Earned "${newBadge.skillName}" Certified Badge (${evalData.overallScore}%).`,
-          'success'
-        );
+          showToast(
+            `Technical Certification Passed! Earned "${serverBadge.skillName}" Certified Badge (${evalData.overallScore}%).`,
+            'success'
+          );
+        } catch (certErr) {
+          showToast('Your score qualifies, but the certificate could not be issued right now. Please try again.', 'error');
+        }
+      } else if (evalData.overallScore >= 80) {
+        showToast('Your score qualifies for a certificate, but verification is unavailable right now. Please try again.', 'info');
       } else {
         showToast('Technical evaluation generated. Review constructive feedback to upskill!', 'info');
       }
@@ -778,13 +762,19 @@ export const MockInterviewView: React.FC<MockInterviewViewProps> = ({
                         >
                           {currentEvaluation.overallScore >= 85 ? 'Strong Hire' : 'Lean Hire'}
                         </span>
-                        {currentEvaluation.overallScore >= 80 && (
+                        {currentEvaluation.overallScore >= 80 && latestAwardedBadge != null && (
                           <span className="block text-[10px] text-indigo-400 font-bold mt-1">
                             Credential Verified 🏆
                           </span>
                         )}
                       </div>
                     </div>
+
+                    {currentEvaluation.isFallback === true && (
+                      <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                        Sample content — AI unavailable. The score and feedback above are illustrative, not a real evaluation.
+                      </div>
+                    )}
 
                     {/* 4 Dimension Metrics */}
                     {currentEvaluation.metrics && (

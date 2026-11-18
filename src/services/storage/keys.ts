@@ -7,7 +7,7 @@ export const STORAGE_KEYS = {
   ACTIVITIES: 'tf_activities',
   COURSES: 'tf_courses',
   SCHEDULED_INTERVIEWS: 'tf_interviews',
-  CERTIFIED_BADGES: 'tf_certified_badges',
+  CERTIFIED_BADGES: 'tf_certified_badges_v2',
   COMPANY_REFERRALS: 'tf_company_referrals',
   OPPORTUNITIES: 'tf_opportunities',
   NEWS: 'tf_bioinformatics_news',

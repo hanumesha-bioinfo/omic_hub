@@ -596,36 +596,7 @@ export const INITIAL_VERIFIED_PROGRAMS: BioinformaticsProgram[] = [
   },
 ];
 
-export const INITIAL_CERTIFIED_BADGES: CertifiedSkillBadge[] = [
-  {
-    id: 'badge_1',
-    skillName: 'NGS Pipeline Architecture & GATK 4 Secondary Analysis',
-    category: 'Genomics & NGS',
-    score: 94,
-    issuedDate: '2026-09-21',
-    verificationId: 'OMI-BIO-94102',
-    verificationUrl: 'https://omichub.ai/verify/cert/OMI-BIO-94102',
-    level: 'Bar-Raiser Master',
-    status: 'Verified',
-    assessedAreas: ['WGS / WES Alignment', 'GATK HaplotypeCaller', 'Variant Quality Recalibration (VQSR)', 'HPC Containerization'],
-    interviewerLens: 'Evaluated against Broad Institute and Illumina DRAGEN senior bioinformatics scientist benchmarks with 94% composite score.',
-    addedToResume: true,
-  },
-  {
-    id: 'badge_2',
-    skillName: 'Single-Cell RNA-seq & Spatial Transcriptomics (Seurat)',
-    category: 'Transcriptomics',
-    score: 91,
-    issuedDate: '2026-09-18',
-    verificationId: 'OMI-BIO-88319',
-    verificationUrl: 'https://omichub.ai/verify/cert/OMI-BIO-88319',
-    level: 'Certified Professional',
-    status: 'Verified',
-    assessedAreas: ['CellRanger Ingestion', 'Doublet Filtering', 'Harmony Batch Correction', 'Biomarker Marker Gene Discovery'],
-    interviewerLens: 'Evaluated against Harvard / MSKCC Computational Oncology rubric for single-cell biomarker characterization.',
-    addedToResume: true,
-  },
-];
+export const INITIAL_CERTIFIED_BADGES: CertifiedSkillBadge[] = [];
 
 export const INITIAL_TRAINING_PROGRAMS: TrainingProgram[] = [
   {
