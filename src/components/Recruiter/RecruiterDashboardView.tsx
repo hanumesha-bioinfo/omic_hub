@@ -664,7 +664,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#fafbfc] text-neutral-900 flex flex-col font-sans selection:bg-neutral-900 selection:text-white relative">
+    <div className="min-h-screen bg-neutral-50 text-neutral-900 flex flex-col font-sans selection:bg-brand-600 selection:text-white relative">
       
       {/* ============================================================== */}
       {/* 1. TOP-LEVEL UNIFIED HEADER (Item 18 & 3)                        */}
@@ -678,7 +678,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           {/* Brand & Portal Badge */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-neutral-900 text-white flex items-center justify-center font-bold shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-bio-400 to-brand-600 text-white flex items-center justify-center font-bold shadow-card">
               <Building2 className="w-5 h-5 text-white" />
             </div>
             <div className="flex items-center gap-2">
@@ -741,7 +741,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
                 onClick={() => setShowUserDropdown(!showUserDropdown)}
                 className="flex items-center gap-2 pl-2.5 pr-3 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-800 text-xs font-bold transition-all cursor-pointer"
               >
-                <div className="w-6 h-6 rounded-lg bg-neutral-900 text-white flex items-center justify-center text-[11px] font-black">
+                <div className="w-6 h-6 rounded-lg bg-brand-600 text-white flex items-center justify-center text-[11px] font-black">
                   {(companyProfile.recruiterName || user.name || 'H').charAt(0)}
                 </div>
                 <span className="max-w-[120px] truncate">{companyProfile.recruiterName || user.name || 'Hanumesha'}</span>
@@ -798,10 +798,10 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
         </div>
 
         {/* NAVIGATION TABS BAR: BELOW THE TOP LINE, CENTERED IN THE MIDDLE (JUST LIKE STUDENT PORTAL) */}
-        <div className="border-t border-neutral-100 bg-[#fafbfc]/90 backdrop-blur-xs py-2 px-4 flex items-center justify-center">
+        <div className="border-t border-neutral-100 bg-neutral-50/90 backdrop-blur-xs py-2 px-4 flex items-center justify-center">
           <nav
             aria-label="Recruiter Portal Navigation Bar"
-            className="flex items-center justify-center gap-1 sm:gap-1.5 p-1 rounded-2xl bg-white border border-neutral-200 shadow-2xs max-w-fit mx-auto overflow-x-auto no-scrollbar"
+            className="flex items-center justify-center gap-1 sm:gap-1.5 p-1 rounded-2xl bg-white border border-neutral-200 shadow-card max-w-fit mx-auto overflow-x-auto no-scrollbar"
           >
             {/* Dashboard */}
             <button
@@ -809,8 +809,8 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
               onClick={() => setActiveTab('dashboard')}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                 activeTab === 'dashboard'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 font-semibold'
+                  ? 'bg-brand-600 text-white shadow-sm'
+                  : 'text-neutral-600 hover:text-brand-700 hover:bg-brand-50 font-semibold'
               }`}
             >
               <LayoutDashboard className={`w-3.5 h-3.5 ${activeTab === 'dashboard' ? 'text-white' : 'text-neutral-500'}`} />
@@ -823,15 +823,15 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
               onClick={() => setActiveTab('jobs')}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                 activeTab === 'jobs'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 font-semibold'
+                  ? 'bg-brand-600 text-white shadow-sm'
+                  : 'text-neutral-600 hover:text-brand-700 hover:bg-brand-50 font-semibold'
               }`}
             >
               <Briefcase className={`w-3.5 h-3.5 ${activeTab === 'jobs' ? 'text-white' : 'text-neutral-500'}`} />
               <span>Jobs</span>
               {recruiterJobs.length > 0 && (
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  activeTab === 'jobs' ? 'bg-white text-neutral-900' : 'bg-neutral-200 text-neutral-800'
+                  activeTab === 'jobs' ? 'bg-white text-brand-700' : 'bg-neutral-200 text-neutral-800'
                 }`}>
                   {recruiterJobs.length}
                 </span>
@@ -844,15 +844,15 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
               onClick={() => setActiveTab('candidates')}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                 activeTab === 'candidates'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 font-semibold'
+                  ? 'bg-brand-600 text-white shadow-sm'
+                  : 'text-neutral-600 hover:text-brand-700 hover:bg-brand-50 font-semibold'
               }`}
             >
               <Users className={`w-3.5 h-3.5 ${activeTab === 'candidates' ? 'text-white' : 'text-neutral-500'}`} />
               <span>Candidates</span>
               {candidates.length > 0 && (
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  activeTab === 'candidates' ? 'bg-white text-neutral-900' : 'bg-neutral-200 text-neutral-800'
+                  activeTab === 'candidates' ? 'bg-white text-brand-700' : 'bg-neutral-200 text-neutral-800'
                 }`}>
                   {candidates.length}
                 </span>
@@ -865,15 +865,15 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
               onClick={() => setActiveTab('applications')}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                 activeTab === 'applications'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 font-semibold'
+                  ? 'bg-brand-600 text-white shadow-sm'
+                  : 'text-neutral-600 hover:text-brand-700 hover:bg-brand-50 font-semibold'
               }`}
             >
               <FileText className={`w-3.5 h-3.5 ${activeTab === 'applications' ? 'text-white' : 'text-neutral-500'}`} />
               <span>Applications</span>
               {applications.length > 0 && (
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  activeTab === 'applications' ? 'bg-white text-neutral-900' : 'bg-neutral-200 text-neutral-800'
+                  activeTab === 'applications' ? 'bg-white text-brand-700' : 'bg-neutral-200 text-neutral-800'
                 }`}>
                   {applications.length}
                 </span>
@@ -886,8 +886,8 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
               onClick={() => setActiveTab('messages')}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                 activeTab === 'messages'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 font-semibold'
+                  ? 'bg-brand-600 text-white shadow-sm'
+                  : 'text-neutral-600 hover:text-brand-700 hover:bg-brand-50 font-semibold'
               }`}
             >
               <MessageSquare className={`w-3.5 h-3.5 ${activeTab === 'messages' ? 'text-white' : 'text-neutral-500'}`} />
@@ -900,8 +900,8 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
               onClick={() => setActiveTab('analytics')}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                 activeTab === 'analytics'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 font-semibold'
+                  ? 'bg-brand-600 text-white shadow-sm'
+                  : 'text-neutral-600 hover:text-brand-700 hover:bg-brand-50 font-semibold'
               }`}
             >
               <BarChart3 className={`w-3.5 h-3.5 ${activeTab === 'analytics' ? 'text-white' : 'text-neutral-500'}`} />
@@ -914,8 +914,8 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
               onClick={() => setActiveTab('company-profile')}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                 activeTab === 'company-profile'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 font-semibold'
+                  ? 'bg-brand-600 text-white shadow-sm'
+                  : 'text-neutral-600 hover:text-brand-700 hover:bg-brand-50 font-semibold'
               }`}
             >
               <Building2 className={`w-3.5 h-3.5 ${activeTab === 'company-profile' ? 'text-white' : 'text-neutral-500'}`} />
@@ -929,7 +929,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
             <button
               type="button"
               onClick={() => setShowPostJobModal(true)}
-              className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap bg-neutral-900 hover:bg-black text-white shadow-xs active:scale-95 hover:scale-102"
+              className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap bg-brand-600 hover:bg-brand-700 text-white shadow-card active:scale-95 hover:scale-102"
               title="Post a New Job Opening"
             >
               <Plus className="w-3.5 h-3.5 text-white" />
@@ -952,7 +952,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
           <div className="space-y-8">
             
             {/* Top Greeting & Pipeline Subtitle */}
-            <div className="rounded-3xl bg-white border border-neutral-200 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="rounded-3xl bg-white border border-neutral-200 border-t-2 border-t-brand-500 p-6 sm:p-8 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-700 text-xs font-semibold">
                   <ShieldCheck className="w-3.5 h-3.5 text-neutral-900" />
@@ -960,7 +960,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
                 </div>
 
                 <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">
-                  {greeting}, {companyProfile.recruiterName || user.name || 'Hanumesha'} 👋
+                  {greeting}, <span className="text-brand-600">{companyProfile.recruiterName || user.name || 'Hanumesha'}</span> 👋
                 </h1>
 
                 <p className="text-sm text-neutral-600 max-w-2xl leading-relaxed">
@@ -972,7 +972,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
               <div className="flex flex-wrap items-center gap-3 shrink-0">
                 <button
                   onClick={() => setShowPostJobModal(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer hover:scale-102"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer hover:scale-102"
                 >
                   <Plus className="w-4 h-4" />
                   <span>+ Post a New Job</span>
@@ -992,7 +992,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
               
               {/* Active Jobs Card */}
-              <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-2">
+              <div className="p-5 rounded-2xl bg-white border border-neutral-200 border-t-2 border-t-brand-500 shadow-card space-y-2">
                 <div className="flex items-center justify-between text-neutral-500">
                   <span className="text-xs font-bold uppercase tracking-wider">Active Jobs</span>
                   <Briefcase className="w-4 h-4 text-neutral-400" />
@@ -1004,7 +1004,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
               </div>
 
               {/* Applications Card */}
-              <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-2">
+              <div className="p-5 rounded-2xl bg-white border border-neutral-200 border-t-2 border-t-brand-500 shadow-card space-y-2">
                 <div className="flex items-center justify-between text-neutral-500">
                   <span className="text-xs font-bold uppercase tracking-wider">Applications</span>
                   <FileText className="w-4 h-4 text-neutral-400" />
@@ -1016,7 +1016,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
               </div>
 
               {/* Shortlisted Card */}
-              <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-2">
+              <div className="p-5 rounded-2xl bg-white border border-neutral-200 border-t-2 border-t-brand-500 shadow-card space-y-2">
                 <div className="flex items-center justify-between text-neutral-500">
                   <span className="text-xs font-bold uppercase tracking-wider">Shortlisted</span>
                   <UserCheck className="w-4 h-4 text-neutral-400" />
@@ -1028,7 +1028,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
               </div>
 
               {/* Interviews Card */}
-              <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-2">
+              <div className="p-5 rounded-2xl bg-white border border-neutral-200 border-t-2 border-t-brand-500 shadow-card space-y-2">
                 <div className="flex items-center justify-between text-neutral-500">
                   <span className="text-xs font-bold uppercase tracking-wider">Interviews</span>
                   <Clock className="w-4 h-4 text-neutral-400" />
@@ -1051,7 +1051,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
                 </p>
                 <button
                   onClick={() => setShowPostJobModal(true)}
-                  className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
+                  className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Post Your First Job</span>
@@ -1239,7 +1239,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-black text-neutral-900">Manage Job Postings</h2>
+                <h2 className="text-xl font-black text-neutral-900 border-l-2 border-l-brand-500 pl-3">Manage Job Postings</h2>
                 <p className="text-xs text-neutral-500">
                   {recruiterJobs.length} active listings published to the student opportunities feed.
                 </p>
@@ -1247,7 +1247,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
 
               <button
                 onClick={() => setShowPostJobModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Post a New Job</span>
@@ -1263,7 +1263,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
                 </p>
                 <button
                   onClick={() => setShowPostJobModal(true)}
-                  className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold cursor-pointer"
+                  className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Create Job Post</span>
@@ -1329,7 +1329,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
                               setSelectedMatchingJobId(job.id);
                               setActiveTab('candidates');
                             }}
-                            className="px-3.5 py-1.5 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                            className="px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
                           >
                             <Users className="w-3.5 h-3.5" />
                             <span>Match Candidates</span>
@@ -1699,7 +1699,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
                               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
                                 cand.shortlisted
                                   ? 'bg-neutral-900 text-white'
-                                  : 'bg-neutral-900 hover:bg-black text-white'
+                                  : 'bg-brand-600 hover:bg-brand-700 text-white'
                               }`}
                             >
                               {cand.shortlisted ? '✓ Shortlisted' : 'Shortlist'}
@@ -1832,7 +1832,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-black text-neutral-900">Application Management</h2>
+                <h2 className="text-xl font-black text-neutral-900 border-l-2 border-l-brand-500 pl-3">Application Management</h2>
                 <p className="text-xs text-neutral-500">
                   Review student submissions. Changes update the candidate's tracker automatically.
                 </p>
@@ -1930,7 +1930,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
                                   showToast(`Profile data for ${app.studentName}`, 'info');
                                 }
                               }}
-                              className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-black text-white text-xs font-bold transition-all cursor-pointer"
+                              className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all cursor-pointer"
                             >
                               View Profile
                             </button>
@@ -2124,7 +2124,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
                         />
                         <button
                           type="submit"
-                          className="px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                          className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
                         >
                           <Send className="w-3.5 h-3.5" />
                           <span>Send</span>
@@ -2148,7 +2148,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-black text-neutral-900">Hiring Pipeline Analytics</h2>
+                <h2 className="text-xl font-black text-neutral-900 border-l-2 border-l-brand-500 pl-3">Hiring Pipeline Analytics</h2>
                 <p className="text-xs text-neutral-500">
                   Metrics generated directly from real student engagement and recruiter actions.
                 </p>
@@ -2157,7 +2157,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
 
             {/* High-Level Overview Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-1">
+              <div className="p-5 rounded-2xl bg-white border border-neutral-200 border-t-2 border-t-bio-500 shadow-card space-y-1">
                 <span className="text-[11px] font-bold text-neutral-400 uppercase">Total Job Views</span>
                 <div className="text-2xl font-black text-neutral-900">
                   {recruiterJobs.reduce((acc, j) => acc + (j.viewsCount || 24), 0)}
@@ -2165,13 +2165,13 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
                 <p className="text-[11px] text-neutral-500">Impressions across feeds</p>
               </div>
 
-              <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-1">
+              <div className="p-5 rounded-2xl bg-white border border-neutral-200 border-t-2 border-t-bio-500 shadow-card space-y-1">
                 <span className="text-[11px] font-bold text-neutral-400 uppercase">Total Applications</span>
                 <div className="text-2xl font-black text-neutral-900">{applications.length}</div>
                 <p className="text-[11px] text-neutral-500">Submitted directly</p>
               </div>
 
-              <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-1">
+              <div className="p-5 rounded-2xl bg-white border border-neutral-200 border-t-2 border-t-bio-500 shadow-card space-y-1">
                 <span className="text-[11px] font-bold text-neutral-400 uppercase">Shortlist Rate</span>
                 <div className="text-2xl font-black text-neutral-900">
                   {applications.length > 0
@@ -2181,7 +2181,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
                 <p className="text-[11px] text-neutral-500">Selectivity benchmark</p>
               </div>
 
-              <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-1">
+              <div className="p-5 rounded-2xl bg-white border border-neutral-200 border-t-2 border-t-bio-500 shadow-card space-y-1">
                 <span className="text-[11px] font-bold text-neutral-400 uppercase">Interviews Active</span>
                 <div className="text-2xl font-black text-neutral-900">
                   {applications.filter((a) => a.status === 'interview').length}
@@ -2249,7 +2249,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
           <div className="max-w-3xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-black text-neutral-900">Company & Recruiter Profile</h2>
+                <h2 className="text-xl font-black text-neutral-900 border-l-2 border-l-brand-500 pl-3">Company & Recruiter Profile</h2>
                 <p className="text-xs text-neutral-500">
                   Separates organizational identity from individual hiring leads.
                 </p>
@@ -2358,7 +2358,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
                 >
                   Save Profile Settings
                 </button>
@@ -2700,7 +2700,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmittingJob}
-                  className="px-6 py-2.5 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   {isSubmittingJob ? 'Publishing...' : 'Publish Listing to Student Feed'}
                 </button>
@@ -2934,7 +2934,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
                     handleToggleShortlist(selectedCandidate.id);
                     setShowCandidateProfileModal(false);
                   }}
-                  className="px-5 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
                 >
                   {selectedCandidate.shortlisted ? '✓ Shortlisted' : 'Shortlist Candidate'}
                 </button>

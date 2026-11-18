@@ -386,7 +386,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               onClick={() => setCareerSearchQuery(tag)}
               className={`px-2.5 py-1 rounded-lg border transition-colors cursor-pointer shrink-0 font-medium ${
                 careerSearchQuery.toLowerCase() === tag.toLowerCase()
-                  ? 'bg-neutral-900 text-white border-neutral-900'
+                  ? 'bg-brand-600 text-white border-brand-600'
                   : 'bg-white hover:bg-neutral-50 border-neutral-200 text-neutral-700'
               }`}
             >
@@ -433,7 +433,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Metadata Kicker & User Greeting */}
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-neutral-500 font-mono">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-neutral-900 uppercase tracking-wider">OMIC HUB</span>
+            <span className="font-bold text-brand-600 uppercase tracking-wider">OMIC HUB</span>
             <span>&bull;</span>
             <span>Placement & Calibration Suite</span>
           </div>
@@ -449,7 +449,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Headline with strict typographic hierarchy */}
         <div className="space-y-2 max-w-3xl">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight leading-tight">
-            Bioinformatics Career Intelligence
+            Bioinformatics <span className="text-brand-600">Career Intelligence</span>
           </h1>
           <p className="text-sm sm:text-base text-neutral-600 leading-relaxed">
             Calibrate computational biology specializations, compare industry compensation in INR (₹) and USD ($), and benchmark your master resume against Workday and Greenhouse ATS parsers.
@@ -463,8 +463,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => setActiveYouTubeTab('all')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeYouTubeTab === 'all'
-                ? 'bg-white text-neutral-900 shadow-2xs font-bold'
-                : 'text-neutral-600 hover:text-neutral-900'
+                ? 'bg-white text-brand-700 shadow-card font-bold'
+                : 'text-neutral-600 hover:text-brand-700'
             }`}
           >
             <span>All Overview</span>
@@ -475,8 +475,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => setActiveYouTubeTab('jobs')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeYouTubeTab === 'jobs'
-                ? 'bg-white text-neutral-900 shadow-2xs font-bold'
-                : 'text-neutral-600 hover:text-neutral-900'
+                ? 'bg-white text-brand-700 shadow-card font-bold'
+                : 'text-neutral-600 hover:text-brand-700'
             }`}
           >
             <Briefcase className="w-3.5 h-3.5 text-neutral-600" />
@@ -488,8 +488,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => setActiveYouTubeTab('courses')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeYouTubeTab === 'courses'
-                ? 'bg-white text-neutral-900 shadow-2xs font-bold'
-                : 'text-neutral-600 hover:text-neutral-900'
+                ? 'bg-white text-brand-700 shadow-card font-bold'
+                : 'text-neutral-600 hover:text-brand-700'
             }`}
           >
             <GraduationCap className="w-3.5 h-3.5 text-neutral-600" />
@@ -501,8 +501,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => setActiveYouTubeTab('interview')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeYouTubeTab === 'interview'
-                ? 'bg-white text-neutral-900 shadow-2xs font-bold'
-                : 'text-neutral-600 hover:text-neutral-900'
+                ? 'bg-white text-brand-700 shadow-card font-bold'
+                : 'text-neutral-600 hover:text-brand-700'
             }`}
           >
             <Mic className="w-3.5 h-3.5 text-neutral-600" />
@@ -514,8 +514,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => setActiveYouTubeTab('validation')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeYouTubeTab === 'validation'
-                ? 'bg-white text-neutral-900 shadow-2xs font-bold'
-                : 'text-neutral-600 hover:text-neutral-900'
+                ? 'bg-white text-brand-700 shadow-card font-bold'
+                : 'text-neutral-600 hover:text-brand-700'
             }`}
           >
             <Award className="w-3.5 h-3.5 text-neutral-600" />
@@ -531,7 +531,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {activeYouTubeTab === 'all' && (
         <section className="space-y-3">
           <div className="flex items-baseline justify-between pb-1">
-            <h2 className="text-xs font-mono font-semibold uppercase tracking-wider text-neutral-400">
+            <h2 className="text-xs font-mono font-semibold uppercase tracking-wider text-brand-600">
               Placement Telemetry & Calibration
             </h2>
             <span className="text-xs text-neutral-500 font-mono">
@@ -542,7 +542,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
             
             {/* DOMINANT HERO METRIC (7 Cols): Master ATS Readiness Score */}
-            <div className="lg:col-span-7 rounded-2xl bg-white border border-neutral-200 p-6 sm:p-7 flex flex-col justify-between shadow-xs">
+            <div className="lg:col-span-7 rounded-2xl bg-white border border-neutral-200 border-t-2 border-t-brand-500 p-6 sm:p-7 flex flex-col justify-between shadow-card">
               <div>
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-2">
@@ -586,7 +586,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 {/* Progress bar without meaningless gradient - clean neutral track */}
                 <div className="mt-4 w-full bg-neutral-100 h-2 rounded-full overflow-hidden border border-neutral-200">
                   <div
-                    className="h-full bg-neutral-900 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-brand-500 to-bio-500 rounded-full transition-all duration-500"
                     style={{ width: `${Math.max(realAtsScore, 6)}%` }}
                   />
                 </div>
@@ -626,7 +626,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setActiveTab('builder')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                 >
                   <FileText className="w-3.5 h-3.5" />
                   <span>Audit ATS & Resume</span>
@@ -649,13 +649,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {/* Secondary Metric 1: Opportunity Pipeline */}
               <div
                 onClick={() => setActiveTab('tracker')}
-                className="p-4 sm:p-5 rounded-xl bg-white border border-neutral-200 hover:border-neutral-300 shadow-xs transition-all cursor-pointer flex flex-col justify-between flex-1 group"
+                className="p-4 sm:p-5 rounded-xl bg-white border border-neutral-200 hover:border-brand-300 shadow-card transition-all cursor-pointer flex flex-col justify-between flex-1 group"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono font-medium uppercase tracking-wider text-neutral-400">
                     Application Pipeline
                   </span>
-                  <ArrowRight className="w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-0.5 transition-all" />
+                  <ArrowRight className="w-3.5 h-3.5 text-neutral-400 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all" />
                 </div>
 
                 <div className="my-2 flex items-baseline justify-between">
@@ -685,13 +685,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {/* Secondary Metric 2: Mock Interview Readiness */}
               <div
                 onClick={onOpenMockInterview}
-                className="p-4 sm:p-5 rounded-xl bg-white border border-neutral-200 hover:border-neutral-300 shadow-xs transition-all cursor-pointer flex flex-col justify-between flex-1 group"
+                className="p-4 sm:p-5 rounded-xl bg-white border border-neutral-200 hover:border-brand-300 shadow-card transition-all cursor-pointer flex flex-col justify-between flex-1 group"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono font-medium uppercase tracking-wider text-neutral-400">
                     Interview Readiness
                   </span>
-                  <ArrowRight className="w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-0.5 transition-all" />
+                  <ArrowRight className="w-3.5 h-3.5 text-neutral-400 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all" />
                 </div>
 
                 <div className="my-2 flex items-baseline justify-between">
@@ -717,13 +717,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {/* Secondary Metric 3: Logged Learning Hours */}
               <div
                 onClick={() => setActiveTab('skills')}
-                className="p-4 sm:p-5 rounded-xl bg-white border border-neutral-200 hover:border-neutral-300 shadow-xs transition-all cursor-pointer flex flex-col justify-between flex-1 group"
+                className="p-4 sm:p-5 rounded-xl bg-white border border-neutral-200 hover:border-brand-300 shadow-card transition-all cursor-pointer flex flex-col justify-between flex-1 group"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono font-medium uppercase tracking-wider text-neutral-400">
                     Verified Curricula
                   </span>
-                  <ArrowRight className="w-3.5 h-3.5 text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-0.5 transition-all" />
+                  <ArrowRight className="w-3.5 h-3.5 text-neutral-400 group-hover:text-brand-600 group-hover:translate-x-0.5 transition-all" />
                 </div>
 
                 <div className="my-2 flex items-baseline justify-between">
@@ -770,7 +770,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     {matchedSkills.length} of 7 Matched
                   </span>
                 </div>
-                <h2 className="text-lg sm:text-xl font-bold text-neutral-900 mt-1">
+                <h2 className="text-lg sm:text-xl font-bold text-neutral-900 mt-1 border-l-2 border-l-brand-500 pl-3">
                   Targeted Programs to Reach 100% ATS Readiness
                 </h2>
                 <p className="text-xs sm:text-sm text-neutral-600 mt-0.5">
@@ -824,7 +824,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             key={tag}
                             className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold border ${
                               isTargetMissing
-                                ? 'bg-neutral-900 text-white border-neutral-900'
+                                ? 'bg-brand-600 text-white border-brand-600'
                                 : 'bg-neutral-50 text-neutral-600 border-neutral-200'
                             }`}
                           >
@@ -841,7 +841,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       href={course.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-black text-white font-semibold text-xs transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition-colors cursor-pointer"
                     >
                       <span>Enroll / Free Audit</span>
                       <ExternalLink className="w-3 h-3 text-neutral-300" />
@@ -861,7 +861,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span className="text-xs font-mono font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
                   100% Core Competency Achieved
                 </span>
-                <h2 className="text-base font-bold text-neutral-900 mt-1">
+                <h2 className="text-base font-bold text-neutral-900 mt-1 border-l-2 border-l-brand-500 pl-3">
                   Master resume covers all 7 core bioinformatics requirements
                 </h2>
                 <p className="text-xs text-neutral-600 mt-0.5">
@@ -873,7 +873,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('tracker')}
-              className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white font-semibold text-xs shadow-xs transition-colors shrink-0 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition-colors shrink-0 cursor-pointer"
             >
               Apply to Matched Opportunities
             </button>
@@ -898,7 +898,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   {filteredPathways.length} Curated Tracks
                 </span>
               </div>
-              <h2 className="text-xl font-bold text-neutral-900 mt-0.5">
+              <h2 className="text-xl font-bold text-neutral-900 mt-0.5 border-l-2 border-l-brand-500 pl-3">
                 Explore Bioinformatics Career Pathways
               </h2>
             </div>
@@ -906,7 +906,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('skills')}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
             >
               <GraduationCap className="w-3.5 h-3.5" />
               <span>Explore All Skill Tracks</span>
@@ -969,7 +969,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             key={sk}
                             className={`text-[11px] px-2 py-0.5 rounded-md font-mono border ${
                               isMatched
-                                ? 'bg-neutral-900 text-white border-neutral-900 font-semibold'
+                                ? 'bg-brand-600 text-white border-brand-600 font-semibold'
                                 : 'bg-white text-neutral-500 border-neutral-200'
                             }`}
                           >
@@ -999,7 +999,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setActiveTab('skills')}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-black text-white font-semibold text-xs transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition-colors cursor-pointer"
                   >
                     <span>View Skill Matrix</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -1022,7 +1022,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <Briefcase className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-neutral-900">
+                <h2 className="text-lg sm:text-xl font-bold text-neutral-900 border-l-2 border-l-brand-500 pl-3">
                   Jobs & Internships Pipeline
                 </h2>
                 <p className="text-xs sm:text-sm text-neutral-600 mt-0.5">
@@ -1033,7 +1033,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <button
               onClick={() => setActiveTab('tracker')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
             >
               <span>Open Dedicated Tracker Tab</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -1056,7 +1056,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <GraduationCap className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-neutral-900">
+                <h2 className="text-lg sm:text-xl font-bold text-neutral-900 border-l-2 border-l-brand-500 pl-3">
                   Verified Courses & Free Audits
                 </h2>
                 <p className="text-xs sm:text-sm text-neutral-600 mt-0.5">
@@ -1067,7 +1067,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <button
               onClick={() => setActiveTab('skills')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
             >
               <span>Open Courses Tab</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -1114,7 +1114,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     href={course.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-black text-white font-semibold text-xs transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition-colors cursor-pointer"
                   >
                     <span>Enroll / Audit Free</span>
                     <ExternalLink className="w-3 h-3 text-neutral-300" />
@@ -1134,7 +1134,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <Mic className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-neutral-900">
+                <h2 className="text-lg sm:text-xl font-bold text-neutral-900 border-l-2 border-l-brand-500 pl-3">
                   Live AI Mock Interview Simulator & STAR Rubric
                 </h2>
                 <p className="text-xs sm:text-sm text-neutral-600 mt-0.5">
@@ -1145,7 +1145,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <button
               onClick={onOpenMockInterview}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
             >
               <span>Launch Simulator</span>
               <Mic className="w-3.5 h-3.5" />
@@ -1181,7 +1181,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <button
                 onClick={onOpenMockInterview}
-                className="w-full py-2 rounded-lg bg-neutral-900 hover:bg-black text-white font-semibold text-xs transition-colors cursor-pointer"
+                className="w-full py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition-colors cursor-pointer"
               >
                 Start Practice Drill
               </button>
@@ -1198,7 +1198,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <Award className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-neutral-900">
+                <h2 className="text-lg sm:text-xl font-bold text-neutral-900 border-l-2 border-l-brand-500 pl-3">
                   7-Core Bioinformatics ATS Skill Validation
                 </h2>
                 <p className="text-xs sm:text-sm text-neutral-600 mt-0.5">
@@ -1212,7 +1212,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 if (onOpenResumeAnalyzer) onOpenResumeAnalyzer();
                 else setActiveTab('analyzer');
               }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
             >
               <span>Run Full ATS Audit</span>
               <SearchCode className="w-3.5 h-3.5" />
@@ -1296,7 +1296,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 {onOpenDataRetrieval && (
                   <button
                     onClick={onOpenDataRetrieval}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer"
                   >
                     <Search className="w-3.5 h-3.5" />
                     <span>Quick Retrieve</span>
@@ -1371,7 +1371,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         </div>
                         <button
                           onClick={onOpenMockInterview}
-                          className="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-black text-white font-semibold text-xs transition-colors cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition-colors cursor-pointer"
                         >
                           Prep
                         </button>

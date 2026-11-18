@@ -79,3 +79,10 @@ test('sign-in and pricing views use brand accents', () => {
   assert.match(signIn, /(brand|bio|ai)-[0-9]/);
   assert.match(pricing, /(brand|bio|ai)-[0-9]/);
 });
+
+test('student and recruiter dashboards use brand accents', () => {
+  const student = readSource('src/components/DashboardView.tsx');
+  const recruiter = readSource('src/components/Recruiter/RecruiterDashboardView.tsx');
+  assert.match(student, /(brand|bio|ai)-[0-9]/);
+  assert.match(recruiter, /(brand|bio|ai)-[0-9]/);
+});
