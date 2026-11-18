@@ -27,8 +27,11 @@ export interface AiRouterDeps {
 
 export function createAiRouter(deps: AiRouterDeps): Router {
   const router = express.Router();
-  router.use(deps.requireAuth);
-  for (const limiter of deps.rateLimiters) router.use(limiter);
+  // Scope the gates to the AI path prefix. This router is mounted at "/", so
+  // an unscoped router.use would authenticate every request in the app,
+  // breaking the HMAC-verified payments webhook and other public routes.
+  router.use('/api/ai', deps.requireAuth);
+  for (const limiter of deps.rateLimiters) router.use('/api/ai', limiter);
 
   const post = (
     path: string,

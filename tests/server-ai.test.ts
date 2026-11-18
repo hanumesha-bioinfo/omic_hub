@@ -5,7 +5,7 @@ import express from 'express';
 import test from 'node:test';
 import { asyncHandler } from '../server/lib/asyncHandler';
 import { errorHandler } from '../server/middleware/error';
-import { createRateLimiter } from '../server/middleware/rateLimit';
+import { createRateLimiter, pruneExpiredBuckets } from '../server/middleware/rateLimit';
 import { firstInvalidField } from '../server/middleware/validate';
 import { createAiRouter } from '../server/routes/ai';
 
@@ -67,6 +67,18 @@ test('rate limiter returns 429 with Retry-After after max requests in the window
     clock += 60_001;
     assert.equal((await fetch(`${base}/limited?user=a`)).status, 200);
   });
+});
+
+test('rate limiter evicts stale buckets so state stays bounded', () => {
+  const hits = new Map<string, number[]>([
+    ['fresh-user', [1_055_000]],
+    ['stale-user', [999_000, 1_000_000]],
+    ['fresh-mixed', [999_000, 1_055_000]],
+  ]);
+  pruneExpiredBuckets(hits, 1_060_000, 10_000);
+  assert.ok(hits.has('fresh-user'));
+  assert.equal(hits.has('stale-user'), false);
+  assert.deepEqual(hits.get('fresh-mixed'), [1_055_000]);
 });
 
 test('firstInvalidField rejects wrong types, overlength strings and bad message items', () => {
@@ -164,6 +176,47 @@ test('non-POST methods still return 405 after auth', async () => {
     const response = await fetch(`${base}/api/ai/resume-improve`);
     assert.equal(response.status, 405);
   });
+});
+
+test('AI auth and limiters are scoped to /api/ai and do not gate other routes', async () => {
+  const app = express();
+  app.get('/api/health', (_req, res) => { res.status(200).json({ ok: true }); });
+  app.use(createAiRouter({ requireAuth: denyAuth, rateLimiters: [] }));
+  app.use('/api', (_req, res) => { res.status(404).json({ error: 'API route not found' }); });
+  const server = app.listen(0);
+  try {
+    const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+    const health = await fetch(`${base}/api/health`);
+    assert.equal(health.status, 200, 'a non-AI route must not require the AI JWT');
+    const ai = await fetch(`${base}/api/ai/resume-improve`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+    });
+    assert.equal(ai.status, 401, 'AI routes must still require the JWT');
+    const missing = await fetch(`${base}/api/does-not-exist`);
+    assert.equal(missing.status, 404, 'the API 404 handler must remain reachable');
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test('error middleware preserves body-parser 400 for malformed JSON', async () => {
+  const original = console.error;
+  console.error = () => {};
+  const app = express();
+  app.use(express.json());
+  app.post('/echo', (req, res) => { res.status(200).json(req.body); });
+  app.use(errorHandler);
+  const server = app.listen(0);
+  try {
+    const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+    const response = await fetch(`${base}/echo`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{bad json',
+    });
+    assert.equal(response.status, 400);
+  } finally {
+    console.error = original;
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
 });
 
 test('bind host is env-configurable with a safe default', () => {
