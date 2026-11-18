@@ -1,6 +1,9 @@
+import { createHash } from 'node:crypto';
 import express, { type Request, type RequestHandler, type Response, type Router } from 'express';
 import { aiClient, apiKey, generateAIResponse } from '../ai/client';
+import { CERTIFICATE_SIGNING_SECRET } from '../config';
 import { asyncHandler } from '../lib/asyncHandler';
+import { createCertificateService, type CertificateService } from '../lib/certificates';
 import { type AuthenticatedRequest, requireAuth } from '../middleware/auth';
 import { createRateLimiter } from '../middleware/rateLimit';
 import { firstInvalidField } from '../middleware/validate';
@@ -23,6 +26,12 @@ const ipLimiter = createRateLimiter({
 export interface AiRouterDeps {
   requireAuth: RequestHandler;
   rateLimiters: RequestHandler[];
+  certs?: CertificateService;
+}
+
+/** Stable content fingerprint bound into a signed assessment token. */
+function hashValue(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
 }
 
 export function createAiRouter(deps: AiRouterDeps): Router {
@@ -379,7 +388,21 @@ Provide strictly valid JSON with this exact structure:
     };
   };
 
-  const result = await generateAIResponse(prompt, fallback);
+  const result = await generateAIResponse(prompt, fallback) as Record<string, unknown>;
+  if (
+    deps.certs &&
+    deps.certs.enabled &&
+    result.isFallback === false &&
+    Number.isFinite(result.overallScore)
+  ) {
+    result.assessmentToken = deps.certs.issueAssessment({
+      sub: (req as AuthenticatedRequest).auth!.userId,
+      qHash: hashValue(question),
+      aHash: hashValue(candidateAnswer),
+      score: result.overallScore as number,
+      skill: ((testedSkill as string | undefined) || (role as string)).trim(),
+    });
+  }
   return res.json(result);
 });
 
@@ -762,4 +785,5 @@ Provide a summary, technological impact on bioinformatics students (Nextflow, Al
 export const aiRouter = createAiRouter({
   requireAuth,
   rateLimiters: [userLimiter, ipLimiter],
+  certs: createCertificateService({ secret: CERTIFICATE_SIGNING_SECRET }),
 });

@@ -17,6 +17,10 @@ export const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || '';
 export const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || '';
 export const RAZORPAY_WEBHOOK_SECRET =
   process.env.RAZORPAY_WEBHOOK_SECRET || '';
+export const CERTIFICATE_SIGNING_SECRET =
+  process.env.CERTIFICATE_SIGNING_SECRET || '';
+export const PUBLIC_APP_URL =
+  process.env.PUBLIC_APP_URL || `http://localhost:${PORT}`;
 
 const projectRoot = path.resolve(__dirname, '../..');
 export const DIST_DIR = path.resolve(projectRoot, 'dist');
