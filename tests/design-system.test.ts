@@ -38,3 +38,10 @@ test('html loads Inter and JetBrains Mono fonts', () => {
   assert.match(html, /Inter/);
   assert.match(html, /JetBrains\+Mono|JetBrains Mono/);
 });
+
+test('shared UI primitives are exported as components', async () => {
+  const primitives = (await import('../src/shared/ui/primitives')) as Record<string, unknown>;
+  for (const name of ['Button', 'Card', 'Badge', 'StatCard', 'SectionHeading', 'EmptyState']) {
+    assert.equal(typeof primitives[name], 'function', `${name} should be a component export`);
+  }
+});
