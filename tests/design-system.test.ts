@@ -45,3 +45,30 @@ test('shared UI primitives are exported as components', async () => {
     assert.equal(typeof primitives[name], 'function', `${name} should be a component export`);
   }
 });
+
+const sidebarSource = readSource('src/shared/layout/Sidebar.tsx');
+const topHeaderSource = readSource('src/shared/layout/TopHeader.tsx');
+
+test('sidebar uses a branded gradient logo mark', () => {
+  assert.match(sidebarSource, /bg-gradient-to-br\s+from-(bio|brand)-/);
+  assert.doesNotMatch(sidebarSource, /w-9 h-9 rounded-xl bg-neutral-900/);
+});
+
+test('sidebar and header use brand tokens for active states', () => {
+  assert.match(sidebarSource, /bg-brand-600/);
+  assert.match(topHeaderSource, /bg-brand-600/);
+});
+
+test('sidebar preserves premium gating and semantic badge meanings', () => {
+  assert.match(sidebarSource, /isInterviewLocked/);
+  assert.match(sidebarSource, /isAuditLocked/);
+  assert.match(sidebarSource, /₹49 Premium/);
+  assert.match(sidebarSource, /text-amber-/);
+  assert.match(sidebarSource, /emerald/);
+  assert.match(sidebarSource, /Live Sync/);
+});
+
+test('header preserves no-print and responsive layout classes', () => {
+  assert.match(topHeaderSource, /no-print/);
+  assert.match(topHeaderSource, /backdrop-blur/);
+});

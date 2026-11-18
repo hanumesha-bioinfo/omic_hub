@@ -78,14 +78,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Skills',
       icon: <GraduationCap className="w-4 h-4" />,
       badge: 'Curated',
-      badgeColor: 'bg-purple-500/15 text-purple-300 border-purple-500/25',
+      badgeColor: 'bg-ai-50 text-ai-700 border-ai-200',
     },
     {
       id: 'tracker',
       label: 'Job',
       icon: <Briefcase className="w-4 h-4" />,
       badge: `${totalApplications}`,
-      badgeColor: 'bg-sky-500/15 text-sky-400 border-sky-500/25',
+      badgeColor: 'bg-sky-50 text-sky-700 border-sky-200',
     },
     {
       id: 'builder',
@@ -93,8 +93,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: <FileText className="w-4 h-4" />,
       badge: user.isResumeUploaded ? `${atsScore}% ATS` : 'Upload / Build',
       badgeColor: user.isResumeUploaded
-        ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
-        : 'bg-amber-500/15 text-amber-300 border-amber-500/25',
+        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+        : 'bg-amber-50 text-amber-700 border-amber-200',
     },
     {
       id: 'mock-interview',
@@ -102,8 +102,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: <Mic className="w-4 h-4" />,
       badge: isInterviewLocked ? '₹49 Premium' : 'Live AI',
       badgeColor: isInterviewLocked
-        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-        : 'bg-amber-500/15 text-amber-300 border-amber-500/25',
+        ? 'bg-amber-100 text-amber-800 border-amber-300'
+        : 'bg-bio-50 text-bio-700 border-bio-200',
       locked: isInterviewLocked,
     },
     {
@@ -111,14 +111,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Certification',
       icon: <Award className="w-4 h-4" />,
       badge: 'Verified',
-      badgeColor: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     },
     {
       id: 'news',
       label: 'News',
       icon: <Newspaper className="w-4 h-4" />,
       badge: 'Real-Time',
-      badgeColor: 'bg-sky-500/15 text-sky-300 border-sky-500/25',
+      badgeColor: 'bg-sky-50 text-sky-700 border-sky-200',
     },
   ];
 
@@ -169,15 +169,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={() => handleNavClick('dashboard')}
             className="flex items-center gap-3 group text-left cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-xl bg-neutral-900 text-white p-0.5 flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-bio-400 to-brand-600 text-white p-0.5 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-base tracking-tight text-neutral-900 group-hover:text-black transition-colors">
+                <span className="font-extrabold text-base tracking-tight text-neutral-900 group-hover:text-brand-700 transition-colors">
                   OMIC HUB
                 </span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-neutral-100 text-neutral-700 font-semibold border border-neutral-200">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-bio-50 text-bio-700 font-semibold border border-bio-200">
                   Career
                 </span>
               </div>
@@ -233,7 +233,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => handleNavClick(item.id)}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer group ${
                     isActive
-                      ? 'bg-neutral-900 text-white font-bold shadow-xs'
+                      ? 'bg-brand-600 text-white font-bold shadow-sm'
                       : 'text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100'
                   }`}
                 >
@@ -252,7 +252,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold border ${
                         isActive
-                          ? 'bg-neutral-800 text-neutral-200 border-neutral-700'
+                          ? 'bg-brand-700 text-white border-brand-600'
                           : 'bg-neutral-100 text-neutral-600 border-neutral-200'
                       }`}
                     >
@@ -320,7 +320,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Subscription Plan Card */}
           {onOpenPlanModal && (
-            <div className="mt-3 p-3.5 rounded-xl bg-neutral-50 border border-neutral-200">
+            <div className="mt-3 p-3.5 rounded-xl bg-gradient-to-br from-bio-50 to-brand-50 border border-brand-100">
               <div className="flex items-center justify-between text-xs mb-1">
                 <span className="font-bold text-neutral-900 flex items-center gap-1.5">
                   <Crown className="w-3.5 h-3.5 text-amber-500" />
@@ -339,7 +339,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onOpenPlanModal();
                   handleClose();
                 }}
-                className="w-full py-1.5 px-2 rounded-lg bg-white hover:bg-neutral-100 text-neutral-800 font-semibold text-[11px] border border-neutral-300 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                className="w-full py-1.5 px-2 rounded-lg bg-white hover:bg-brand-50 text-brand-700 font-semibold text-[11px] border border-brand-200 transition-colors flex items-center justify-center gap-1 cursor-pointer"
               >
                 <span>Compare Plans (₹0 / ₹49)</span>
                 <ChevronRight className="w-3 h-3 text-neutral-400" />

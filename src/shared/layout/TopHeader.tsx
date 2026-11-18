@@ -113,11 +113,11 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all cursor-pointer group active:scale-95 bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 shadow-2xs"
               title="Click omic.hub logo to open full menu"
             >
-              <div className="w-7 h-7 rounded-lg bg-neutral-900 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-bio-400 to-brand-600 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
                 <Sparkles className="w-3.5 h-3.5" />
               </div>
               <div className="text-left flex items-center gap-1.5">
-                <span className="font-extrabold text-sm text-neutral-900 group-hover:text-black tracking-tight transition-colors">
+                <span className="font-extrabold text-sm text-neutral-900 group-hover:text-brand-700 tracking-tight transition-colors">
                   OMIC HUB
                 </span>
                 <Menu className="w-3.5 h-3.5 text-neutral-500 group-hover:text-neutral-900 transition-colors" />
@@ -132,10 +132,10 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               <button
                 type="button"
                 onClick={onOpenGeminiChat}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-102 cursor-pointer bg-neutral-100 hover:bg-neutral-200 text-neutral-900 border border-neutral-200 shadow-2xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-102 cursor-pointer bg-ai-50 hover:bg-ai-100 text-ai-700 border border-ai-200 shadow-2xs"
                 title="Launch Gemini Bioinformatics Assistant & Voice Conversations"
               >
-                <Sparkles className="w-3.5 h-3.5 text-neutral-900" />
+                <Sparkles className="w-3.5 h-3.5 text-ai-600" />
                 <span className="hidden sm:inline">Gemini AI</span>
               </button>
             )}
@@ -148,7 +148,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
                 className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-800 shadow-2xs"
                 title="Open Scientific Visualization & Diagram Studio"
               >
-                <span className="w-2 h-2 rounded-full bg-neutral-900" />
+                <span className="w-2 h-2 rounded-full bg-bio-500" />
                 <span>Visual Studio</span>
               </button>
             )}
@@ -157,7 +157,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             <button
               type="button"
               onClick={onOpenPlanModal ? onOpenPlanModal : () => setActiveTab('pricing')}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group active:scale-95 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 border border-neutral-200 shadow-2xs"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group active:scale-95 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 shadow-2xs"
               title="View Premium Plans & Benefits"
             >
               <Crown className="w-3.5 h-3.5 text-amber-600" />
@@ -204,7 +204,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
                     </div>
                     <div className="flex items-start gap-3 text-left">
                       <div className="p-1.5 rounded-lg bg-neutral-100 text-neutral-900 shrink-0">
-                        <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                        <Sparkles className="w-3.5 h-3.5 text-ai-600" />
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-neutral-900">ATS Score Calibrated</p>
@@ -249,7 +249,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
                       <p className="text-xs font-bold text-neutral-900">
                         {user.name}
                       </p>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-neutral-900 text-white font-semibold">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-brand-600 text-white font-semibold">
                         Scholar
                       </span>
                     </div>
@@ -323,10 +323,10 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
       </div>
 
       {/* Navigation Tabs Bar: Appears across all tabs, fitted in the middle */}
-      <div className="border-t border-neutral-100 bg-[#fafbfc]/90 backdrop-blur-xs py-2 px-4 flex items-center justify-center">
+      <div className="border-t border-neutral-100 bg-neutral-50/90 backdrop-blur-xs py-2 px-4 flex items-center justify-center">
         <nav
           aria-label="Features Navigation Bar"
-          className="flex items-center justify-center gap-1 sm:gap-1.5 p-1 rounded-2xl bg-white border border-neutral-200 shadow-2xs max-w-fit mx-auto overflow-x-auto no-scrollbar"
+          className="flex items-center justify-center gap-1 sm:gap-1.5 p-1 rounded-2xl bg-white border border-neutral-200 shadow-card max-w-fit mx-auto overflow-x-auto no-scrollbar"
         >
           {appTabs.map((feat) => {
             const isActive = activeTab === feat.id;
@@ -337,7 +337,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
                 onClick={() => setActiveTab(feat.id)}
                 className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                   isActive
-                    ? 'bg-neutral-900 text-white shadow-xs'
+                    ? 'bg-brand-600 text-white shadow-sm'
                     : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 font-semibold'
                 }`}
                 title={feat.tooltip}
