@@ -1,5 +1,48 @@
-import { ResumeAnalysisResult, MockInterviewQuestion } from '../../types';
-import { postJson, postJsonOrNull } from './client';
+import type { ResumeAnalysisResult, MockInterviewQuestion } from '../../types';
+
+export interface AiDeps {
+  fetcher?: typeof fetch;
+  getToken?: () => Promise<string | null>;
+}
+
+/** Imported lazily so the AI client stays importable in environments without Vite env vars. */
+async function getSessionToken(): Promise<string | null> {
+  const { supabase } = await import('../../lib/supabase');
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? null;
+}
+
+/** Posts JSON to an AI endpoint with the caller's Supabase bearer token attached. */
+export async function postAi<T>(
+  path: string,
+  body: unknown,
+  errorMessage: (status: number) => string = (status) => `Server returned ${status}`,
+  deps: AiDeps = {},
+): Promise<T> {
+  const { fetcher = fetch, getToken = getSessionToken } = deps;
+  const token = await getToken();
+  const response = await fetcher(path, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token ?? ''}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(errorMessage(response.status));
+  }
+  return (await response.json()) as T;
+}
+
+/** Like postAi, but resolves to null instead of throwing on an API error. */
+export async function postAiOrNull<T>(path: string, body: unknown, deps: AiDeps = {}): Promise<T | null> {
+  try {
+    return await postAi<T>(path, body, undefined, deps);
+  } catch {
+    return null;
+  }
+}
 
 export interface ResumeImproveResponse {
   score: number;
@@ -19,7 +62,7 @@ export async function improveResumeBullet(
   role = 'Software Engineer'
 ): Promise<ResumeImproveResponse> {
   try {
-    return await postJson<ResumeImproveResponse>('/api/ai/resume-improve', { text, section, role });
+    return await postAi<ResumeImproveResponse>('/api/ai/resume-improve', { text, section, role });
   } catch (err) {
     console.warn('API error, falling back locally:', err);
     return {
@@ -55,7 +98,7 @@ export async function analyzeFullResume(
   industry: string
 ): Promise<ResumeAnalysisResult> {
   try {
-    return await postJson<ResumeAnalysisResult>('/api/ai/resume-analyze', {
+    return await postAi<ResumeAnalysisResult>('/api/ai/resume-analyze', {
       resumeText,
       targetRole,
       industry,
@@ -104,7 +147,7 @@ export async function generateMockQuestions(
   testedSkill?: string
 ): Promise<{ questions: MockInterviewQuestion[] }> {
   try {
-    return await postJson<{ questions: MockInterviewQuestion[] }>(
+    return await postAi<{ questions: MockInterviewQuestion[] }>(
       '/api/ai/mock-interview/generate-questions',
       { role, interviewType, seniority, testedSkill }
     );
@@ -152,7 +195,7 @@ export async function evaluateMockResponse(
   testedSkill?: string
 ) {
   try {
-    return await postJson<any>('/api/ai/mock-interview/evaluate-response', {
+    return await postAi<any>('/api/ai/mock-interview/evaluate-response', {
       question,
       candidateAnswer,
       role,
@@ -195,7 +238,7 @@ export async function getSkillRecommendations(
   completedSkills: string[]
 ) {
   try {
-    return await postJson<any>('/api/ai/skills-recommend', {
+    return await postAi<any>('/api/ai/skills-recommend', {
       currentRole,
       targetRole,
       completedSkills,
@@ -250,7 +293,7 @@ export async function sendGeminiChatMessage(
   systemInstruction?: string
 ): Promise<{ text: string; model: string; isFallback?: boolean }> {
   try {
-    return await postJson<{ text: string; model: string; isFallback?: boolean }>(
+    return await postAi<{ text: string; model: string; isFallback?: boolean }>(
       '/api/ai/chat',
       { messages, model, role, systemInstruction },
       (status) => `Chat API error: ${status}`
@@ -273,7 +316,7 @@ export async function searchBioinformaticsGrounding(query: string): Promise<{
   grounded: boolean;
 }> {
   try {
-    return await postJson<{
+    return await postAi<{
       text: string;
       sources: { title: string; uri: string }[];
       searchEntryPoint?: string | null;
@@ -303,7 +346,7 @@ export async function transcribeUserAudio(
   prompt?: string
 ): Promise<string> {
   try {
-    const data = await postJson<{ text?: string }>(
+    const data = await postAi<{ text?: string }>(
       '/api/ai/transcribe',
       { audioData, mimeType, prompt },
       (status) => `Transcribe API error: ${status}`
@@ -322,7 +365,7 @@ export async function generateGeminiImage(
   aspectRatio = '1:1'
 ): Promise<{ imageUrl: string; prompt: string }> {
   try {
-    return await postJson<{ imageUrl: string; prompt: string }>(
+    return await postAi<{ imageUrl: string; prompt: string }>(
       '/api/ai/generate-image',
       { prompt, base64Image, aspectRatio },
       (status) => `Generate image API error: ${status}`
@@ -342,7 +385,7 @@ export async function synthesizeVoiceAudio(
   voiceName = 'Zephyr'
 ): Promise<string | null> {
   try {
-    const data = await postJsonOrNull<{ audio?: string }>('/api/ai/voice-speak', { text, voiceName });
+    const data = await postAiOrNull<{ audio?: string }>('/api/ai/voice-speak', { text, voiceName });
     return data?.audio || null;
   } catch (err) {
     console.warn('Voice synthesis failed:', err);
