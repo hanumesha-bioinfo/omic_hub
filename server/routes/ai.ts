@@ -503,7 +503,7 @@ Provide strictly valid JSON with this exact structure:
         },
       });
       const response = await chat.sendMessage({ message: lastMsg.text || '' });
-      return res.json({ text: response.text, model: CHAT_MODEL });
+      return res.json({ text: response.text, model: CHAT_MODEL, isFallback: false });
     } catch (err: any) {
       console.warn('Gemini chat failed, falling back:', err);
     }
@@ -552,6 +552,7 @@ Provide a summary, technological impact on bioinformatics students (Nextflow, Al
         sources,
         searchEntryPoint: grounding?.searchEntryPoint?.renderedContent || null,
         grounded: sources.length > 0,
+        isFallback: false,
       });
     } catch (err: any) {
       console.warn('Search grounding failed, using structured fallback:', err);
@@ -559,12 +560,10 @@ Provide a summary, technological impact on bioinformatics students (Nextflow, Al
   }
 
   return res.json({
-    text: `Live bioinformatics search report for "${searchQuery || 'Bioinformatics Trends'}": Demand for Nextflow DSL2 orchestration surged +42% across commercial biotech. AlphaFold 3 multi-molecular modeling is actively replacing legacy docking screening across pharma discovery pipelines. Clinical genomics laboratories are expanding hiring for somatic variant calling specialists with GATK 4 expertise.`,
-    sources: [
-      { title: 'Nature Biotechnology - Genomic Data & AI', uri: 'https://www.nature.com/nbt' },
-      { title: 'bioRxiv Bioinformatics Feed', uri: 'https://www.biorxiv.org/collection/bioinformatics' },
-    ],
-    grounded: true,
+    text: 'Live search is unavailable right now. Please try again.',
+    sources: [],
+    searchEntryPoint: null,
+    grounded: false,
     isFallback: true,
   });
 });
@@ -600,7 +599,7 @@ Provide a summary, technological impact on bioinformatics students (Nextflow, Al
           ],
         },
       });
-      return res.json({ text: response.text || '' });
+      return res.json({ text: response.text || '', isFallback: false });
     } catch (err: any) {
       console.warn('Audio transcribe failed, falling back:', err);
     }
@@ -654,7 +653,7 @@ Provide a summary, technological impact on bioinformatics students (Nextflow, Al
       for (const part of response.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) {
           const imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
-          return res.json({ imageUrl, prompt });
+          return res.json({ imageUrl, prompt, isFallback: false });
         }
       }
     } catch (err: any) {
@@ -731,13 +730,13 @@ Provide a summary, technological impact on bioinformatics students (Nextflow, Al
       });
       const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
       if (base64Audio) {
-        return res.json({ audio: base64Audio, mimeType: 'audio/pcm;rate=24000' });
+        return res.json({ audio: base64Audio, mimeType: 'audio/pcm;rate=24000', isFallback: false });
       }
     } catch (err: any) {
       console.warn('Voice speak failed:', err);
     }
   }
-  return res.json({ audio: null, message: 'Speech generated' });
+  return res.json({ audio: null, message: 'Speech synthesis unavailable', isFallback: true });
 });
 
   const AI_POST_ROUTES = [

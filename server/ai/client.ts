@@ -27,11 +27,11 @@ export async function generateAIResponse(prompt: string, fallbackGenerator: () =
       });
       const text = response.text?.trim() || '';
       if (text) {
-        return JSON.parse(text);
+        return { ...JSON.parse(text), isFallback: false };
       }
     } catch (error) {
       console.warn('Gemini API call failed or returned non-JSON, using structured fallback:', error);
     }
   }
-  return fallbackGenerator();
+  return { ...fallbackGenerator(), isFallback: true };
 }
