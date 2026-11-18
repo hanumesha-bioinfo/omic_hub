@@ -429,6 +429,13 @@ export interface ResumeAnalysisResult {
   }[];
 }
 
+export interface MockEvaluationResult {
+  overallScore: number;
+  isFallback?: boolean;
+  assessmentToken?: string;
+  [key: string]: any;
+}
+
 export interface CertifiedSkillBadge {
   id: string;
   skillName: string;
